@@ -385,6 +385,10 @@
         <span>Dotknij partię, aby ukryć/pokazać</span>
       </div>
 
+      <label class="auto-toggle" style="margin-bottom: 10px;">
+        <span><strong>Auto-wykres progu 5%:</strong> pokaż od razu partie z szansą na przebicie 5%</span>
+        <input type="checkbox" id="autoShowNear5" checked style="width:18px; height:18px; accent-color:#14b8a6;" />
+      </label>
       <div class="filter-chips" id="partyChips"></div>
 
       <div class="chart-box">
@@ -495,11 +499,28 @@
       const diffVal = hasAvg ? (aggAvg - last) : 0;
       const diffAbs = Math.abs(diffVal);
 
-      // Rola kotwicy zgodna 1:1 z formułą w XLSX (kolumny AJ, AK, AL, AM):
-      const hScale = 0.5 + 0.5 * Math.min(1, h / 12);
-      const wAnchor = hasAvg ? Math.min(0.70, Math.max(corrWeight * 0.5, corrWeight + 0.06 * diffAbs * hScale)) : 0;
-      const anchor = hasAvg ? ((1 - wAnchor) * last + wAnchor * aggAvg) : last;
-      const adjTrend = trend + 0.15 * wAnchor * Math.min(1, h / 12) * (diffVal / Math.max(1, h));
+      // Ważony trend z ostatnich przyrostów miesięcznych (do 4 kroków): wagi [0.45, 0.25, 0.18, 0.12]
+      const slopeWeights = [0.45, 0.25, 0.18, 0.12];
+      const stepDiffs = [];
+      for (let m = validPoints.length - 1; m >= 1 && stepDiffs.length < 4; m--) {
+        const cur = validPoints[m];
+        const prevPt = validPoints[m - 1];
+        if (cur.idx - prevPt.idx === 1) {
+          stepDiffs.push(cur.val - prevPt.val);
+        }
+      }
+      let weightedTrend = trend;
+      if (stepDiffs.length > 0) {
+        const usedW = slopeWeights.slice(0, stepDiffs.length);
+        const sumW = usedW.reduce((a, b) => a + b, 0);
+        weightedTrend = stepDiffs.reduce((acc, d, i) => acc + d * (usedW[i] / sumW), 0);
+      }
+
+      // Miękka kotwica bez sztucznej górki na starcie (zgodna z formułami w XLSX v5)
+      const wAnchor = hasAvg ? Math.min(0.35, 0.15 + 0.03 * diffAbs) : 0;
+      const startBase = hasAvg ? (last + 0.35 * wAnchor * diffVal) : last;
+      const multH = Math.max(0.01, phi * (1 - Math.pow(phi, Math.max(1, h))) / (1 - phi));
+      const adjTrend = weightedTrend + (hasAvg ? (0.40 * wAnchor * (diffVal / multH)) : 0);
 
       // Buduj pełną 25-miesięczną trajektorię (historia + przyszłość do lis.27)
       const histLine = new Array(25).fill(null);
@@ -519,20 +540,23 @@
       projLine[partyLastIdx] = last;
       for (let step = 1; step <= h; step++) {
         const multStep = phi * (1 - Math.pow(phi, step)) / (1 - phi);
-        const valStep = Math.max(0, anchor + adjTrend * multStep);
+        const valStep = Math.max(0, startBase + adjTrend * multStep);
         projLine[partyLastIdx + step] = parseFloat(valStep.toFixed(2));
       }
 
       const forecast = h > 0 ? projLine[24] : last;
       targetPoint[24] = parseFloat(forecast.toFixed(2));
+      const maxAgg = hasAvg ? Math.max(...srcVals) : last;
+      const hasChanceAbove5 = (forecast >= 4.0) || (maxAgg >= 5.0 && forecast >= 3.2);
 
       return {
         ...p,
         last,
         partyLastIdx,
         h,
-        trend,
+        trend: weightedTrend,
         forecast,
+        hasChanceAbove5,
         seats: 0,
         histLine,
         projLine,
@@ -632,19 +656,33 @@
       listEl.appendChild(row);
     });
 
+    applyAutoNear5(computed);
     // Chipy wyboru partii i wykres (Podstrona 2)
-    renderChips();
+    renderChips(computed);
     renderChart(computed);
   }
 
-  function renderChips() {
+  function applyAutoNear5(computed) {
+    const autoNear5El = document.getElementById("autoShowNear5");
+    if (!autoNear5El || !autoNear5El.checked) return;
+    computed.forEach(comp => {
+      if (comp.hasChanceAbove5) {
+        const dsItem = dataset.find(d => d.name === comp.name);
+        if (dsItem) dsItem.visible = true;
+      }
+    });
+  }
+
+  function renderChips(computed) {
     const chipsEl = document.getElementById("partyChips");
     chipsEl.innerHTML = "";
     dataset.forEach((p, idx) => {
       const color = COLORS[p.name] || "#94a3b8";
+      const compItem = computed ? computed.find(c => c.name === p.name) : null;
+      const nearTag = (compItem && compItem.hasChanceAbove5) ? ' <span style="color:#fbbf24;">★≥5%</span>' : '';
       const btn = document.createElement("button");
       btn.className = "chip" + (p.visible ? " active" : "");
-      btn.innerHTML = `<span class="dot" style="background:${color}; width:8px; height:8px;"></span>${p.name}`;
+      btn.innerHTML = `<span class="dot" style="background:${color}; width:8px; height:8px;"></span>${p.name}${nearTag}`;
       btn.onclick = () => {
         dataset[idx].visible = !dataset[idx].visible;
         renderAll();
@@ -898,6 +936,7 @@
       dhondtExp === 1.0 ? "Krajowy (1,00 — bez efektu okręgów)" : "Okręgowy (1,15 — realny Sejm)";
     renderAll();
   });
+  document.getElementById("autoShowNear5").addEventListener("change", renderAll);
 
   renderAll();
 </script>
