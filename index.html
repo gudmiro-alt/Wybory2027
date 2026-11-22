@@ -7,7 +7,6 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0f172a" />
   <title>Prognoza Sejm 2027</title>
-  <!-- SheetJS do odczytu pliku .xlsx bezpośrednio w przeglądarce telefonu -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
   <style>
     :root {
@@ -20,6 +19,8 @@
       --dem-bg: rgba(56, 189, 248, 0.14);
       --right: #f87171;
       --right-bg: rgba(248, 113, 113, 0.14);
+      --warn: #fbbf24;
+      --warn-bg: rgba(251, 191, 36, 0.14);
       --accent: #14b8a6;
       --border: rgba(148, 163, 184, 0.18);
     }
@@ -38,7 +39,7 @@
       margin-bottom: 14px;
     }
     h1 { font-size: 1.22rem; font-weight: 700; letter-spacing: -0.02em; }
-    .subtitle { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+    .subtitle { font-size: 0.76rem; color: var(--muted); margin-top: 2px; }
     .upload-btn {
       background: var(--accent);
       color: #042f2e;
@@ -63,7 +64,7 @@
       margin-bottom: 12px;
     }
     .card-title {
-      font-size: 0.75rem;
+      font-size: 0.74rem;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: var(--muted);
@@ -71,9 +72,9 @@
       margin-bottom: 10px;
       display: flex;
       justify-content: space-between;
+      align-items: center;
     }
 
-    /* Pasek większości Sejmu */
     .sejm-bar-wrap {
       position: relative;
       height: 28px;
@@ -92,7 +93,7 @@
       font-weight: 800;
       font-size: 0.85rem;
       color: #082f49;
-      transition: width 0.4s ease;
+      transition: width 0.35s ease;
     }
     .bar-right {
       background: linear-gradient(90deg, #f87171, #dc2626);
@@ -104,7 +105,7 @@
       font-weight: 800;
       font-size: 0.85rem;
       color: #450a0a;
-      transition: width 0.4s ease;
+      transition: width 0.35s ease;
     }
     .majority-line {
       position: absolute;
@@ -121,19 +122,15 @@
       gap: 8px;
       margin-top: 8px;
     }
-    .bloc-box {
-      padding: 10px;
-      border-radius: 12px;
-    }
+    .bloc-box { padding: 10px; border-radius: 12px; }
     .bloc-box.dem { background: var(--dem-bg); border: 1px solid rgba(56, 189, 248, 0.3); }
     .bloc-box.right { background: var(--right-bg); border: 1px solid rgba(248, 113, 113, 0.3); }
-    .bloc-name { font-size: 0.75rem; font-weight: 700; }
+    .bloc-name { font-size: 0.74rem; font-weight: 700; }
     .bloc-box.dem .bloc-name { color: var(--dem); }
     .bloc-box.right .bloc-name { color: var(--right); }
     .bloc-seats { font-size: 1.35rem; font-weight: 800; margin: 2px 0; }
     .bloc-sub { font-size: 0.72rem; color: var(--muted); }
 
-    /* Lista partii */
     .party-row {
       padding: 9px 0;
       border-bottom: 1px solid var(--border);
@@ -145,25 +142,26 @@
       align-items: center;
       margin-bottom: 5px;
     }
-    .party-left { display: flex; align-items: center; gap: 8px; }
-    .dot { width: 10px; height: 10px; border-radius: 50%; }
-    .party-name { font-weight: 700; font-size: 0.95rem; }
-    .badge-out {
-      font-size: 0.65rem;
-      background: rgba(148, 163, 184, 0.16);
-      color: var(--muted);
+    .party-left { display: flex; align-items: center; gap: 7px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .party-name { font-weight: 700; font-size: 0.94rem; }
+    .badge {
+      font-size: 0.64rem;
       padding: 2px 6px;
       border-radius: 6px;
+      font-weight: 700;
     }
-    .party-right { text-align: right; display: flex; align-items: baseline; gap: 8px; }
-    .pct { font-weight: 800; font-size: 0.98rem; }
+    .badge-out { background: rgba(148, 163, 184, 0.16); color: var(--muted); }
+    .badge-bubble { background: var(--warn-bg); color: var(--warn); border: 1px solid rgba(251, 191, 36, 0.35); }
+    .party-right { text-align: right; display: flex; align-items: baseline; gap: 7px; }
+    .pct { font-weight: 800; font-size: 0.96rem; }
     .seats-pill {
       background: var(--card-light);
-      font-size: 0.75rem;
+      font-size: 0.74rem;
       font-weight: 700;
       padding: 2px 7px;
       border-radius: 6px;
-      min-width: 54px;
+      min-width: 52px;
       text-align: center;
     }
     .seats-pill.active { background: #1e3a8a; color: #93c5fd; }
@@ -174,14 +172,22 @@
       border-radius: 4px;
       overflow: hidden;
     }
-    .prog-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+    .prog-fill { height: 100%; border-radius: 4px; transition: width 0.35s ease; }
 
-    /* Suwaki symulacji na żywo */
-    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .ctrl-box { background: #0f172a; padding: 9px 10px; border-radius: 10px; }
-    .ctrl-lbl { font-size: 0.72rem; color: var(--muted); display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .auto-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0f172a;
+      padding: 9px 11px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      font-size: 0.8rem;
+    }
+    .ctrl-box { background: #0f172a; padding: 9px 11px; border-radius: 10px; }
+    .ctrl-lbl { font-size: 0.74rem; color: var(--muted); display: flex; justify-content: space-between; margin-bottom: 5px; }
     input[type="range"] { width: 100%; accent-color: var(--accent); }
-    .status-note { font-size: 0.72rem; color: var(--muted); text-align: center; margin-top: 8px; }
+    .status-note { font-size: 0.72rem; color: var(--muted); text-align: center; margin-top: 8px; line-height: 1.35; }
   </style>
 </head>
 <body>
@@ -189,7 +195,7 @@
   <header>
     <div>
       <h1>Prognoza Sejm 2027</h1>
-      <div class="subtitle" id="dataStatus">Baza: lis.26 → cel: lis.27 (h=12)</div>
+      <div class="subtitle" id="dataStatus">Baza: lis.26 → cel: lis.27 (h=12) • AUTO φ=0,80</div>
     </div>
     <label class="upload-btn">
       📂 Wczytaj .xlsx
@@ -197,7 +203,6 @@
     </label>
   </header>
 
-  <!-- Karta 1: Podział Sejmu (460 mandatów) -->
   <div class="card">
     <div class="card-title">
       <span>Podział mandatów (D'Hondt)</span>
@@ -222,7 +227,6 @@
     </div>
   </div>
 
-  <!-- Karta 2: Wyniki partii -->
   <div class="card">
     <div class="card-title">
       <span>Prognoza na listopad 2027</span>
@@ -231,22 +235,22 @@
     <div id="partyList"></div>
   </div>
 
-  <!-- Karta 3: Szybka symulacja suwakami na telefonie -->
   <div class="card">
     <div class="card-title">
-      <span>Symulator scenariuszy (na żywo)</span>
+      <span>Parametry modelu (D'Hondt stały: 1,15)</span>
     </div>
-    <div class="controls">
-      <div class="ctrl-box">
-        <div class="ctrl-lbl"><span>Tłumienie (φ)</span><strong id="phiVal">0.85</strong></div>
-        <input type="range" id="phiSlider" min="0.60" max="0.95" step="0.05" value="0.85" />
+    <label class="auto-toggle">
+      <span><strong>AUTO φ i okno trendu</strong> (wg liczby mies. do 11/2027)</span>
+      <input type="checkbox" id="autoMode" checked style="width:18px; height:18px; accent-color:#14b8a6;" />
+    </label>
+    <div class="ctrl-box">
+      <div class="ctrl-lbl">
+        <span>Współczynnik tłumienia (φ)</span>
+        <strong id="phiVal">0.80</strong>
       </div>
-      <div class="ctrl-box">
-        <div class="ctrl-lbl"><span>Premia D'Hondta</span><strong id="expVal">1.15</strong></div>
-        <input type="range" id="expSlider" min="1.00" max="1.25" step="0.05" value="1.15" />
-      </div>
+      <input type="range" id="phiSlider" min="0.60" max="0.95" step="0.05" value="0.80" disabled />
     </div>
-    <div class="status-note">Po aktualizacji pliku .xlsx kliknij „Wczytaj .xlsx” u góry, aby odświeżyć dane.</div>
+    <div class="status-note" id="modelInfo">Tryb AUTO: h&gt;8 → φ=0,80 (okno 3m) • h=5..8 → φ=0,85 (3m) • h≤4 → φ=0,75 (2m). Korekta śr. mies.: 30%.</div>
   </div>
 
 <script>
@@ -262,37 +266,72 @@
     PL2050: "#eab308"
   };
 
-  // Domyślne dane wbudowane (z Twojej tabeli lis.25 - lis.26)
+  const DHONDT_EXP = 1.15; // Stały współczynnik odzwierciedlający podział na 41 okręgów w Polsce
+
+  // Przechowujemy pełne serie historyczne dla partii, aby móc przeliczać okno trendu (3m vs 2m) w trybie AUTO
   let dataset = [
-    { name: "KO",     bloc: "Demokratyczny", last: 31.50, trend: (31.50 - 31.30)/3, h: 12 },
-    { name: "PIS",    bloc: "Prawica",       last: 18.00, trend: (18.00 - 21.40)/3, h: 12 },
-    { name: "KONF",   bloc: "Prawica",       last: 12.50, trend: (12.50 - 12.90)/3, h: 12 },
-    { name: "KPP",    bloc: "Prawica",       last: 8.70,  trend: (8.70 - 8.90)/3,   h: 12 },
-    { name: "LEWICA", bloc: "Demokratyczny", last: 7.30,  trend: (7.30 - 6.60)/3,   h: 12 },
-    { name: "R+",     bloc: "Prawica",       last: 4.80,  trend: (4.80 - 5.20)/3,   h: 12 },
-    { name: "PSL",    bloc: "Demokratyczny", last: 3.30,  trend: (3.30 - 3.00)/3,   h: 12 },
-    { name: "RAZEM",  bloc: "Demokratyczny", last: 3.20,  trend: (3.20 - 3.70)/3,   h: 12 },
-    { name: "PL2050", bloc: "Demokratyczny", last: 1.40,  trend: (1.40 - 1.30)/3,   h: 12 }
+    { name: "KO",     bloc: "Demokratyczny", series: [31.30, 31.30, 31.20, 31.20, 31.20, 31.20, 31.20, 31.20, 31.20, 31.30, 31.30, 31.40, 31.50], monthlyAvg: 31.60, h: 12 },
+    { name: "PIS",    bloc: "Prawica",       series: [27.40, 27.00, 26.50, 26.00, 25.40, 24.70, 24.00, 23.20, 22.30, 21.40, 20.30, 19.20, 18.00], monthlyAvg: 20.20, h: 12 },
+    { name: "KONF",   bloc: "Prawica",       series: [13.70, 13.70, 13.60, 13.50, 13.40, 13.30, 13.20, 13.10, 13.00, 12.90, 12.80, 12.70, 12.50], monthlyAvg: 13.30, h: 12 },
+    { name: "KPP",    bloc: "Prawica",       series: [7.00,  7.40,  7.70,  8.00,  8.20,  8.50,  8.60,  8.70,  8.80,  8.90,  8.90,  8.80,  8.70],  monthlyAvg: 8.50,  h: 12 },
+    { name: "LEWICA", bloc: "Demokratyczny", series: [6.20,  6.10,  6.10,  6.10,  6.10,  6.20,  6.20,  6.30,  6.40,  6.60,  6.80,  7.00,  7.30],  monthlyAvg: 6.40,  h: 12 },
+    { name: "RAZEM",  bloc: "Demokratyczny", series: [3.90,  4.00,  4.10,  4.10,  4.10,  4.10,  4.00,  4.00,  3.90,  3.70,  3.60,  3.40,  3.20],  monthlyAvg: null,  h: 12 },
+    { name: "PSL",    bloc: "Demokratyczny", series: [2.80,  2.80,  2.80,  2.80,  2.80,  2.80,  2.90,  2.90,  2.90,  3.00,  3.10,  3.20,  3.30],  monthlyAvg: null,  h: 12 },
+    { name: "R+",     bloc: "Prawica",       series: [5.40,  5.20,  5.10,  4.90,  4.80],                                                               monthlyAvg: 4.60,  h: 12 },
+    { name: "PL2050", bloc: "Demokratyczny", series: [2.40,  2.20,  2.00,  1.80,  1.70,  1.60,  1.50,  1.40,  1.40,  1.30,  1.30,  1.30,  1.40],  monthlyAvg: null,  h: 12 }
   ];
 
-  function calculateAndRender() {
-    const phi = parseFloat(document.getElementById("phiSlider").value);
-    const exp = parseFloat(document.getElementById("expSlider").value);
-    document.getElementById("phiVal").textContent = phi.toFixed(2);
-    document.getElementById("expVal").textContent = exp.toFixed(2);
+  let corrWeight = 0.30;
+  let lastMonthLabel = "lis.26";
 
-    // 1. Prognoza Holta z tłumieniem
+  function getAutoPhi(h) {
+    if (h > 8) return 0.80;
+    if (h > 4) return 0.85;
+    return 0.75;
+  }
+
+  function getAutoWindow(h) {
+    return h <= 4 ? 2 : 3;
+  }
+
+  function calculateAndRender() {
+    const isAuto = document.getElementById("autoMode").checked;
+    const slider = document.getElementById("phiSlider");
+    slider.disabled = isAuto;
+
+    const hMain = dataset.length > 0 ? dataset[0].h : 12;
+    const phi = isAuto ? getAutoPhi(hMain) : parseFloat(slider.value);
+    const win = isAuto ? getAutoWindow(hMain) : 3;
+
+    slider.value = phi.toFixed(2);
+    document.getElementById("phiVal").textContent = phi.toFixed(2);
+
     const computed = dataset.map(p => {
+      const s = p.series;
+      const last = s[s.length - 1];
+      const k = Math.min(win, s.length - 1);
+      const prev = s[s.length - 1 - k];
+      const trend = k > 0 ? (last - prev) / k : 0;
       const mult = p.h > 0 ? phi * (1 - Math.pow(phi, p.h)) / (1 - phi) : 0;
-      const forecast = Math.max(0, p.last + p.trend * mult);
-      return { ...p, forecast, seats: 0 };
+
+      const baseForecast = last + trend * mult;
+      const corrForecast = (typeof p.monthlyAvg === "number" && !isNaN(p.monthlyAvg))
+        ? (p.monthlyAvg + trend * mult)
+        : baseForecast;
+
+      const blended = (typeof p.monthlyAvg === "number" && !isNaN(p.monthlyAvg))
+        ? ((1 - corrWeight) * baseForecast + corrWeight * corrForecast)
+        : baseForecast;
+
+      const forecast = Math.max(0, blended);
+      return { ...p, last, trend, forecast, seats: 0 };
     });
 
-    // 2. Podział 460 mandatów metodą D'Hondta (próg 5%)
+    // Podział 460 mandatów metodą D'Hondta (próg 5%, stały wykładnik 1.15)
     let quotients = [];
     computed.forEach((p, idx) => {
       if (p.forecast >= 5.0) {
-        const w = Math.pow(p.forecast, exp);
+        const w = Math.pow(p.forecast, DHONDT_EXP);
         for (let q = 1; q <= 250; q++) {
           quotients.push({ val: w / q, idx });
         }
@@ -303,10 +342,8 @@
       computed[q.idx].seats += 1;
     });
 
-    // Sortowanie malejąco po prognozie
     computed.sort((a, b) => b.forecast - a.forecast);
 
-    // Sumy bloków
     let demSeats = 0, rightSeats = 0, demPct = 0, rightPct = 0;
     computed.forEach(p => {
       if (p.bloc.toLowerCase().includes("dem")) {
@@ -331,7 +368,9 @@
     document.getElementById("rightSeats").textContent = rightSeats;
     document.getElementById("rightSub").textContent = `${rightPct.toFixed(1)}% poparcia (${rightShare.toFixed(1)}% Sejmu)`;
 
-    // Render listy partii
+    document.getElementById("dataStatus").textContent =
+      `Baza: ${lastMonthLabel} → cel: lis.27 (h=${hMain}) • ${isAuto ? 'AUTO ' : ''}φ=${phi.toFixed(2)} (${win}m)`;
+
     const listEl = document.getElementById("partyList");
     listEl.innerHTML = "";
     const maxPct = Math.max(...computed.map(p => p.forecast), 35);
@@ -339,9 +378,14 @@
     computed.forEach(p => {
       const color = COLORS[p.name] || "#94a3b8";
       const inSejm = p.seats > 0;
+      const inBubble = p.forecast >= 4.0 && p.forecast <= 6.0;
       const barW = Math.min(100, (p.forecast / maxPct) * 100);
       const diff = p.forecast - p.last;
       const diffStr = (diff >= 0 ? "+" : "") + diff.toFixed(1);
+
+      let badgeHtml = "";
+      if (inBubble) badgeHtml = '<span class="badge badge-bubble">STREFAPROGU 4–6%</span>';
+      else if (!inSejm) badgeHtml = '<span class="badge badge-out">&lt;5%</span>';
 
       const row = document.createElement("div");
       row.className = "party-row";
@@ -350,7 +394,7 @@
           <div class="party-left">
             <span class="dot" style="background:${color}"></span>
             <span class="party-name">${p.name}</span>
-            ${!inSejm ? '<span class="badge-out">&lt;5%</span>' : ''}
+            ${badgeHtml}
           </div>
           <div class="party-right">
             <span style="font-size:0.75rem; color:#94a3b8">${diffStr}</span>
@@ -366,7 +410,6 @@
     });
   }
 
-  // Obsługa wczytywania pliku .xlsx z telefonu
   document.getElementById("xlsxInput").addEventListener("change", function(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -378,17 +421,26 @@
         const ws = wb.Sheets["Prognoza_2027"] || wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
-        // Odczyt parametrów z wiersza 4 (indeks 3)
+        // Parametry z wiersza 4 (indeks 3)
         if (rows[3]) {
-          if (typeof rows[3][3] === "number") document.getElementById("phiSlider").value = rows[3][3];
-          if (typeof rows[3][20] === "number") document.getElementById("expSlider").value = rows[3][20];
+          const dVal = rows[3][3]; // D4
+          if (typeof dVal === "number") {
+            if (dVal === 1) {
+              document.getElementById("autoMode").checked = true;
+            } else {
+              document.getElementById("autoMode").checked = false;
+              document.getElementById("phiSlider").value = dVal;
+            }
+          }
+          const sVal = rows[3][18]; // S4 (waga korekty śr. mies.)
+          if (typeof sVal === "number" && !isNaN(sVal)) {
+            corrWeight = sVal;
+          }
         }
-        const windowM = (rows[3] && typeof rows[3][7] === "number") ? rows[3][7] : 3;
 
-        // Wiersze partii: indeksy 7..15 (wiersze 8..16 w Excelu)
         const parsed = [];
-        let lastMonthLabel = "";
         const headerRow = rows[6] || [];
+        let maxColIdx = 2;
 
         for (let r = 7; r <= 15; r++) {
           const row = rows[r];
@@ -396,39 +448,41 @@
           const name = String(row[0]).trim();
           const bloc = String(row[1] || "Prawica").trim();
 
-          // Zbierz wszystkie liczby z kolumn C..AA (indeksy 2..26)
-          const nums = [];
+          const series = [];
+          let lastCol = 2;
           for (let c = 2; c <= 26; c++) {
             if (typeof row[c] === "number" && !isNaN(row[c])) {
-              nums.push({ val: row[c], col: c });
+              series.push(row[c]);
+              lastCol = c;
             }
           }
-          if (nums.length > 0) {
-            const lastObj = nums[nums.length - 1];
-            const k = Math.min(windowM, nums.length - 1);
-            const prevObj = nums[nums.length - 1 - k];
-            const trend = k > 0 ? (lastObj.val - prevObj.val) / k : 0;
-            const h = 26 - lastObj.col; // kolumna 26 to AA (lis.27)
-            if (headerRow[lastObj.col]) lastMonthLabel = headerRow[lastObj.col];
-            parsed.push({ name, bloc, last: lastObj.val, trend, h });
+
+          // Kolumna AC ma indeks 28
+          const mAvg = (typeof row[28] === "number" && !isNaN(row[28])) ? row[28] : null;
+
+          if (series.length > 0) {
+            const h = 26 - lastCol;
+            if (lastCol > maxColIdx) {
+              maxColIdx = lastCol;
+              if (headerRow[lastCol]) lastMonthLabel = headerRow[lastCol];
+            }
+            parsed.push({ name, bloc, series, monthlyAvg: mAvg, h });
           }
         }
 
         if (parsed.length > 0) {
           dataset = parsed;
-          const hVal = parsed[0].h;
-          document.getElementById("dataStatus").textContent = `Dane z pliku (${lastMonthLabel}) → cel: lis.27 (h=${hVal})`;
           calculateAndRender();
         }
       } catch (err) {
-        alert("Nie udało się odczytać pliku Excel. Upewnij się, że wybierasz plik Prognoza_Poparcia_Listopad_2027-v2.xlsx");
+        alert("Nie udało się odczytać pliku Excel. Sprawdź, czy plik ma strukturę Prognoza_2027.");
       }
     };
     reader.readAsArrayBuffer(file);
   });
 
+  document.getElementById("autoMode").addEventListener("change", calculateAndRender);
   document.getElementById("phiSlider").addEventListener("input", calculateAndRender);
-  document.getElementById("expSlider").addEventListener("input", calculateAndRender);
 
   calculateAndRender();
 </script>
