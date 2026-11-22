@@ -366,7 +366,7 @@
         </div>
         <input type="range" id="phiSlider" min="0.60" max="0.95" step="0.05" value="0.80" disabled />
       </div>
-      <div class="status-note">Tryb AUTO: h&gt;8 → φ=0,80 (okno 3m) • h=5..8 → φ=0,85 (3m) • h≤4 → φ=0,75 (2m). Korekta śr. mies.: 30%.</div>
+      <div class="status-note">Tryb AUTO: h&gt;8 → φ=0,80 (okno 3m) • h=5..8 → φ=0,85 (3m) • h≤4 → φ=0,75 (2m). Kotwica: śr. z ewybory.eu, Atlasu Polit. i PolitPro (waga rośnie z 40% do 65% bliżej wyborów).</div>
     </div>
   </section>
 
@@ -395,7 +395,7 @@
         </div>
         <div class="legend-item">
           <span class="sym-diamond"></span>
-          <span><strong>Romb (◆):</strong> bieżąca średnia miesięczna z ewybory.eu (kotwica)</span>
+          <span><strong>Romb (◆):</strong> średnia z 3 agregatorów (ewybory.eu, Atlas Polit., PolitPro — kotwica)</span>
         </div>
         <div class="legend-item">
           <span class="sym-target"></span>
@@ -428,19 +428,20 @@
   const DHONDT_EXP = 1.15;
 
   // Pełne serie 13-miesięczne (null dla okresów przed powstaniem R+)
+  // Kotwica = średnia z ewybory.eu (ewAvg), Atlasu Politycznego (apAvg) i PolitPro (ppAvg)
   let dataset = [
-    { name: "KO",     bloc: "Demokratyczny", rawSeries: [31.30, 31.30, 31.20, 31.20, 31.20, 31.20, 31.20, 31.20, 31.20, 31.30, 31.30, 31.40, 31.50], monthlyAvg: 31.60, visible: true },
-    { name: "PIS",    bloc: "Prawica",       rawSeries: [27.40, 27.00, 26.50, 26.00, 25.40, 24.70, 24.00, 23.20, 22.30, 21.40, 20.30, 19.20, 18.00], monthlyAvg: 20.20, visible: true },
-    { name: "KONF",   bloc: "Prawica",       rawSeries: [13.70, 13.70, 13.60, 13.50, 13.40, 13.30, 13.20, 13.10, 13.00, 12.90, 12.80, 12.70, 12.50], monthlyAvg: 13.30, visible: true },
-    { name: "KPP",    bloc: "Prawica",       rawSeries: [7.00,  7.40,  7.70,  8.00,  8.20,  8.50,  8.60,  8.70,  8.80,  8.90,  8.90,  8.80,  8.70],  monthlyAvg: 8.50,  visible: true },
-    { name: "LEWICA", bloc: "Demokratyczny", rawSeries: [6.20,  6.10,  6.10,  6.10,  6.10,  6.20,  6.20,  6.30,  6.40,  6.60,  6.80,  7.00,  7.30],  monthlyAvg: 6.40,  visible: true },
-    { name: "R+",     bloc: "Prawica",       rawSeries: [null,  null,  null,  null,  null,  null,  null,  null,  5.40,  5.20,  5.10,  4.90,  4.80],  monthlyAvg: 4.60,  visible: true },
-    { name: "PSL",    bloc: "Demokratyczny", rawSeries: [2.80,  2.80,  2.80,  2.80,  2.80,  2.80,  2.90,  2.90,  2.90,  3.00,  3.10,  3.20,  3.30],  monthlyAvg: null,  visible: false },
-    { name: "RAZEM",  bloc: "Demokratyczny", rawSeries: [3.90,  4.00,  4.10,  4.10,  4.10,  4.10,  4.00,  4.00,  3.90,  3.70,  3.60,  3.40,  3.20],  monthlyAvg: null,  visible: false },
-    { name: "PL2050", bloc: "Demokratyczny", rawSeries: [2.40,  2.20,  2.00,  1.80,  1.70,  1.60,  1.50,  1.40,  1.40,  1.30,  1.30,  1.30,  1.40],  monthlyAvg: null,  visible: false }
+    { name: "KO",     bloc: "Demokratyczny", rawSeries: [31.30, 31.30, 31.20, 31.20, 31.20, 31.20, 31.20, 31.20, 31.20, 31.30, 31.30, 31.40, 31.50], ewAvg: 31.60, apAvg: 32.40, ppAvg: 32.60, visible: true },
+    { name: "PIS",    bloc: "Prawica",       rawSeries: [27.40, 27.00, 26.50, 26.00, 25.40, 24.70, 24.00, 23.20, 22.30, 21.40, 20.30, 19.20, 18.00], ewAvg: 20.20, apAvg: 21.90, ppAvg: 22.20, visible: true },
+    { name: "KONF",   bloc: "Prawica",       rawSeries: [13.70, 13.70, 13.60, 13.50, 13.40, 13.30, 13.20, 13.10, 13.00, 12.90, 12.80, 12.70, 12.50], ewAvg: 13.30, apAvg: 14.10, ppAvg: 13.70, visible: true },
+    { name: "KPP",    bloc: "Prawica",       rawSeries: [7.00,  7.40,  7.70,  8.00,  8.20,  8.50,  8.60,  8.70,  8.80,  8.90,  8.90,  8.80,  8.70],  ewAvg: 8.50,  apAvg: 9.10,  ppAvg: 8.50,  visible: true },
+    { name: "LEWICA", bloc: "Demokratyczny", rawSeries: [6.20,  6.10,  6.10,  6.10,  6.10,  6.20,  6.20,  6.30,  6.40,  6.60,  6.80,  7.00,  7.30],  ewAvg: 6.40,  apAvg: 7.30,  ppAvg: 7.30,  visible: true },
+    { name: "R+",     bloc: "Prawica",       rawSeries: [null,  null,  null,  null,  null,  null,  null,  null,  5.40,  5.20,  5.10,  4.90,  4.80],  ewAvg: 4.60,  apAvg: 4.70,  ppAvg: 4.70,  visible: true },
+    { name: "PSL",    bloc: "Demokratyczny", rawSeries: [2.80,  2.80,  2.80,  2.80,  2.80,  2.80,  2.90,  2.90,  2.90,  3.00,  3.10,  3.20,  3.30],  ewAvg: null,  apAvg: 3.00,  ppAvg: 3.50,  visible: false },
+    { name: "RAZEM",  bloc: "Demokratyczny", rawSeries: [3.90,  4.00,  4.10,  4.10,  4.10,  4.10,  4.00,  4.00,  3.90,  3.70,  3.60,  3.40,  3.20],  ewAvg: null,  apAvg: 4.40,  ppAvg: 4.20,  visible: false },
+    { name: "PL2050", bloc: "Demokratyczny", rawSeries: [2.40,  2.20,  2.00,  1.80,  1.70,  1.60,  1.50,  1.40,  1.40,  1.30,  1.30,  1.30,  1.40],  ewAvg: null,  apAvg: 1.70,  ppAvg: 1.70,  visible: false }
   ];
 
-  let corrWeight = 0.30;
+  let corrWeight = 0.40;
   let lastMonthIdx = 12; // indeks 12 = lis.26 (0..24)
   let chartInstance = null;
 
@@ -482,8 +483,13 @@
       const prev = validPoints[validPoints.length - 1 - k].val;
       const trend = k > 0 ? (last - prev) / k : 0;
 
-      const hasAvg = (typeof p.monthlyAvg === "number" && !isNaN(p.monthlyAvg));
-      const anchor = hasAvg ? ((1 - corrWeight) * last + corrWeight * p.monthlyAvg) : last;
+      const srcVals = [p.ewAvg, p.apAvg, p.ppAvg].filter(v => typeof v === "number" && !isNaN(v));
+      const aggAvg = srcVals.length > 0 ? (srcVals.reduce((a, b) => a + b, 0) / srcVals.length) : null;
+      const hasAvg = (typeof aggAvg === "number" && !isNaN(aggAvg));
+      // Waga kotwicy rośnie bliżej wyborów: z 0.40 (h>=12) do 0.65 (h<=1)
+      const dynWeight = h >= 12 ? 0.40 : (h <= 1 ? 0.65 : (0.40 + 0.25 * ((12 - h) / 11)));
+      const effWeight = isAuto ? dynWeight : corrWeight;
+      const anchor = hasAvg ? ((1 - effWeight) * last + effWeight * aggAvg) : last;
 
       // Buduj pełną 25-miesięczną trajektorię (historia + przyszłość do lis.27)
       const histLine = new Array(25).fill(null);
@@ -496,7 +502,7 @@
       }
 
       if (hasAvg) {
-        avgPoint[partyLastIdx] = p.monthlyAvg;
+        avgPoint[partyLastIdx] = parseFloat(aggAvg.toFixed(2));
       }
 
       // Punkt startowy linii projekcji łączy się z ostatnim punktem historycznym (lub zakotwiczonym)
@@ -848,7 +854,7 @@
               name,
               bloc,
               rawSeries,
-              monthlyAvg: mAvg,
+              ewAvg: mAvg, apAvg: null, ppAvg: null,
               visible: prevVis.hasOwnProperty(name) ? prevVis[name] : true
             });
           }
