@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Prognoza Sejm 2027</title>
+  <!-- SheetJS do odczytu pliku .xlsx bezpośrednio w przeglądarce telefonu -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --card-light: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --dem: #38bdf8;
+      --dem-bg: rgba(56, 189, 248, 0.14);
+      --right: #f87171;
+      --right-bg: rgba(248, 113, 113, 0.14);
+      --accent: #14b8a6;
+      --border: rgba(148, 163, 184, 0.18);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      padding: 14px 14px 40px;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    h1 { font-size: 1.22rem; font-weight: 700; letter-spacing: -0.02em; }
+    .subtitle { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+    .upload-btn {
+      background: var(--accent);
+      color: #042f2e;
+      font-weight: 700;
+      font-size: 0.78rem;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3);
+    }
+    input[type="file"] { display: none; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Pasek większości Sejmu */
+    .sejm-bar-wrap {
+      position: relative;
+      height: 28px;
+      background: #0f172a;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      margin: 8px 0;
+    }
+    .bar-dem {
+      background: linear-gradient(90deg, #0284c7, #38bdf8);
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding-left: 10px;
+      font-weight: 800;
+      font-size: 0.85rem;
+      color: #082f49;
+      transition: width 0.4s ease;
+    }
+    .bar-right {
+      background: linear-gradient(90deg, #f87171, #dc2626);
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 10px;
+      font-weight: 800;
+      font-size: 0.85rem;
+      color: #450a0a;
+      transition: width 0.4s ease;
+    }
+    .majority-line {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #facc15;
+      z-index: 3;
+    }
+    .bloc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .bloc-box {
+      padding: 10px;
+      border-radius: 12px;
+    }
+    .bloc-box.dem { background: var(--dem-bg); border: 1px solid rgba(56, 189, 248, 0.3); }
+    .bloc-box.right { background: var(--right-bg); border: 1px solid rgba(248, 113, 113, 0.3); }
+    .bloc-name { font-size: 0.75rem; font-weight: 700; }
+    .bloc-box.dem .bloc-name { color: var(--dem); }
+    .bloc-box.right .bloc-name { color: var(--right); }
+    .bloc-seats { font-size: 1.35rem; font-weight: 800; margin: 2px 0; }
+    .bloc-sub { font-size: 0.72rem; color: var(--muted); }
+
+    /* Lista partii */
+    .party-row {
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .party-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .party-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    .party-left { display: flex; align-items: center; gap: 8px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .party-name { font-weight: 700; font-size: 0.95rem; }
+    .badge-out {
+      font-size: 0.65rem;
+      background: rgba(148, 163, 184, 0.16);
+      color: var(--muted);
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+    .party-right { text-align: right; display: flex; align-items: baseline; gap: 8px; }
+    .pct { font-weight: 800; font-size: 0.98rem; }
+    .seats-pill {
+      background: var(--card-light);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+      min-width: 54px;
+      text-align: center;
+    }
+    .seats-pill.active { background: #1e3a8a; color: #93c5fd; }
+    .prog-track {
+      width: 100%;
+      height: 6px;
+      background: #0f172a;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .prog-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+
+    /* Suwaki symulacji na żywo */
+    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .ctrl-box { background: #0f172a; padding: 9px 10px; border-radius: 10px; }
+    .ctrl-lbl { font-size: 0.72rem; color: var(--muted); display: flex; justify-content: space-between; margin-bottom: 4px; }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+    .status-note { font-size: 0.72rem; color: var(--muted); text-align: center; margin-top: 8px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <h1>Prognoza Sejm 2027</h1>
+      <div class="subtitle" id="dataStatus">Baza: lis.26 → cel: lis.27 (h=12)</div>
+    </div>
+    <label class="upload-btn">
+      📂 Wczytaj .xlsx
+      <input type="file" id="xlsxInput" accept=".xlsx,.xls" />
+    </label>
+  </header>
+
+  <!-- Karta 1: Podział Sejmu (460 mandatów) -->
+  <div class="card">
+    <div class="card-title">
+      <span>Podział mandatów (D'Hondt)</span>
+      <span>Większość: 231</span>
+    </div>
+    <div class="sejm-bar-wrap">
+      <div class="majority-line" title="Większość 231"></div>
+      <div class="bar-dem" id="barDem" style="width: 58.3%">268</div>
+      <div class="bar-right" id="barRight" style="width: 41.7%">192</div>
+    </div>
+    <div class="bloc-grid">
+      <div class="bloc-box dem">
+        <div class="bloc-name">DEMOKRATYCZNE</div>
+        <div class="bloc-seats" id="demSeats">268</div>
+        <div class="bloc-sub" id="demSub">48,0% poparcia (58,3% Sejmu)</div>
+      </div>
+      <div class="bloc-box right">
+        <div class="bloc-name">PRAWICA</div>
+        <div class="bloc-seats" id="rightSeats">192</div>
+        <div class="bloc-sub" id="rightSub">36,9% poparcia (41,7% Sejmu)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Karta 2: Wyniki partii -->
+  <div class="card">
+    <div class="card-title">
+      <span>Prognoza na listopad 2027</span>
+      <span>Poparcie / Mandaty</span>
+    </div>
+    <div id="partyList"></div>
+  </div>
+
+  <!-- Karta 3: Szybka symulacja suwakami na telefonie -->
+  <div class="card">
+    <div class="card-title">
+      <span>Symulator scenariuszy (na żywo)</span>
+    </div>
+    <div class="controls">
+      <div class="ctrl-box">
+        <div class="ctrl-lbl"><span>Tłumienie (φ)</span><strong id="phiVal">0.85</strong></div>
+        <input type="range" id="phiSlider" min="0.60" max="0.95" step="0.05" value="0.85" />
+      </div>
+      <div class="ctrl-box">
+        <div class="ctrl-lbl"><span>Premia D'Hondta</span><strong id="expVal">1.15</strong></div>
+        <input type="range" id="expSlider" min="1.00" max="1.25" step="0.05" value="1.15" />
+      </div>
+    </div>
+    <div class="status-note">Po aktualizacji pliku .xlsx kliknij „Wczytaj .xlsx” u góry, aby odświeżyć dane.</div>
+  </div>
+
+<script>
+  const COLORS = {
+    KO: "#f97316",
+    PIS: "#2563eb",
+    KONF: "#64748b",
+    KPP: "#991b1b",
+    LEWICA: "#ef4444",
+    RAZEM: "#a855f7",
+    PSL: "#22c55e",
+    "R+": "#0ea5e9",
+    PL2050: "#eab308"
+  };
+
+  // Domyślne dane wbudowane (z Twojej tabeli lis.25 - lis.26)
+  let dataset = [
+    { name: "KO",     bloc: "Demokratyczny", last: 31.50, trend: (31.50 - 31.30)/3, h: 12 },
+    { name: "PIS",    bloc: "Prawica",       last: 18.00, trend: (18.00 - 21.40)/3, h: 12 },
+    { name: "KONF",   bloc: "Prawica",       last: 12.50, trend: (12.50 - 12.90)/3, h: 12 },
+    { name: "KPP",    bloc: "Prawica",       last: 8.70,  trend: (8.70 - 8.90)/3,   h: 12 },
+    { name: "LEWICA", bloc: "Demokratyczny", last: 7.30,  trend: (7.30 - 6.60)/3,   h: 12 },
+    { name: "R+",     bloc: "Prawica",       last: 4.80,  trend: (4.80 - 5.20)/3,   h: 12 },
+    { name: "PSL",    bloc: "Demokratyczny", last: 3.30,  trend: (3.30 - 3.00)/3,   h: 12 },
+    { name: "RAZEM",  bloc: "Demokratyczny", last: 3.20,  trend: (3.20 - 3.70)/3,   h: 12 },
+    { name: "PL2050", bloc: "Demokratyczny", last: 1.40,  trend: (1.40 - 1.30)/3,   h: 12 }
+  ];
+
+  function calculateAndRender() {
+    const phi = parseFloat(document.getElementById("phiSlider").value);
+    const exp = parseFloat(document.getElementById("expSlider").value);
+    document.getElementById("phiVal").textContent = phi.toFixed(2);
+    document.getElementById("expVal").textContent = exp.toFixed(2);
+
+    // 1. Prognoza Holta z tłumieniem
+    const computed = dataset.map(p => {
+      const mult = p.h > 0 ? phi * (1 - Math.pow(phi, p.h)) / (1 - phi) : 0;
+      const forecast = Math.max(0, p.last + p.trend * mult);
+      return { ...p, forecast, seats: 0 };
+    });
+
+    // 2. Podział 460 mandatów metodą D'Hondta (próg 5%)
+    let quotients = [];
+    computed.forEach((p, idx) => {
+      if (p.forecast >= 5.0) {
+        const w = Math.pow(p.forecast, exp);
+        for (let q = 1; q <= 250; q++) {
+          quotients.push({ val: w / q, idx });
+        }
+      }
+    });
+    quotients.sort((a, b) => b.val - a.val);
+    quotients.slice(0, 460).forEach(q => {
+      computed[q.idx].seats += 1;
+    });
+
+    // Sortowanie malejąco po prognozie
+    computed.sort((a, b) => b.forecast - a.forecast);
+
+    // Sumy bloków
+    let demSeats = 0, rightSeats = 0, demPct = 0, rightPct = 0;
+    computed.forEach(p => {
+      if (p.bloc.toLowerCase().includes("dem")) {
+        demSeats += p.seats;
+        demPct += p.forecast;
+      } else {
+        rightSeats += p.seats;
+        rightPct += p.forecast;
+      }
+    });
+
+    const demShare = (demSeats / 460) * 100;
+    const rightShare = (rightSeats / 460) * 100;
+
+    document.getElementById("barDem").style.width = demShare + "%";
+    document.getElementById("barDem").textContent = demSeats;
+    document.getElementById("barRight").style.width = rightShare + "%";
+    document.getElementById("barRight").textContent = rightSeats;
+
+    document.getElementById("demSeats").textContent = demSeats;
+    document.getElementById("demSub").textContent = `${demPct.toFixed(1)}% poparcia (${demShare.toFixed(1)}% Sejmu)`;
+    document.getElementById("rightSeats").textContent = rightSeats;
+    document.getElementById("rightSub").textContent = `${rightPct.toFixed(1)}% poparcia (${rightShare.toFixed(1)}% Sejmu)`;
+
+    // Render listy partii
+    const listEl = document.getElementById("partyList");
+    listEl.innerHTML = "";
+    const maxPct = Math.max(...computed.map(p => p.forecast), 35);
+
+    computed.forEach(p => {
+      const color = COLORS[p.name] || "#94a3b8";
+      const inSejm = p.seats > 0;
+      const barW = Math.min(100, (p.forecast / maxPct) * 100);
+      const diff = p.forecast - p.last;
+      const diffStr = (diff >= 0 ? "+" : "") + diff.toFixed(1);
+
+      const row = document.createElement("div");
+      row.className = "party-row";
+      row.innerHTML = `
+        <div class="party-top">
+          <div class="party-left">
+            <span class="dot" style="background:${color}"></span>
+            <span class="party-name">${p.name}</span>
+            ${!inSejm ? '<span class="badge-out">&lt;5%</span>' : ''}
+          </div>
+          <div class="party-right">
+            <span style="font-size:0.75rem; color:#94a3b8">${diffStr}</span>
+            <span class="pct">${p.forecast.toFixed(2)}%</span>
+            <span class="seats-pill ${inSejm ? 'active' : ''}">${p.seats} m.</span>
+          </div>
+        </div>
+        <div class="prog-track">
+          <div class="prog-fill" style="width:${barW}%; background:${color}"></div>
+        </div>
+      `;
+      listEl.appendChild(row);
+    });
+  }
+
+  // Obsługa wczytywania pliku .xlsx z telefonu
+  document.getElementById("xlsxInput").addEventListener("change", function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      try {
+        const data = new Uint8Array(evt.target.result);
+        const wb = XLSX.read(data, { type: "array" });
+        const ws = wb.Sheets["Prognoza_2027"] || wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+        // Odczyt parametrów z wiersza 4 (indeks 3)
+        if (rows[3]) {
+          if (typeof rows[3][3] === "number") document.getElementById("phiSlider").value = rows[3][3];
+          if (typeof rows[3][20] === "number") document.getElementById("expSlider").value = rows[3][20];
+        }
+        const windowM = (rows[3] && typeof rows[3][7] === "number") ? rows[3][7] : 3;
+
+        // Wiersze partii: indeksy 7..15 (wiersze 8..16 w Excelu)
+        const parsed = [];
+        let lastMonthLabel = "";
+        const headerRow = rows[6] || [];
+
+        for (let r = 7; r <= 15; r++) {
+          const row = rows[r];
+          if (!row || !row[0]) continue;
+          const name = String(row[0]).trim();
+          const bloc = String(row[1] || "Prawica").trim();
+
+          // Zbierz wszystkie liczby z kolumn C..AA (indeksy 2..26)
+          const nums = [];
+          for (let c = 2; c <= 26; c++) {
+            if (typeof row[c] === "number" && !isNaN(row[c])) {
+              nums.push({ val: row[c], col: c });
+            }
+          }
+          if (nums.length > 0) {
+            const lastObj = nums[nums.length - 1];
+            const k = Math.min(windowM, nums.length - 1);
+            const prevObj = nums[nums.length - 1 - k];
+            const trend = k > 0 ? (lastObj.val - prevObj.val) / k : 0;
+            const h = 26 - lastObj.col; // kolumna 26 to AA (lis.27)
+            if (headerRow[lastObj.col]) lastMonthLabel = headerRow[lastObj.col];
+            parsed.push({ name, bloc, last: lastObj.val, trend, h });
+          }
+        }
+
+        if (parsed.length > 0) {
+          dataset = parsed;
+          const hVal = parsed[0].h;
+          document.getElementById("dataStatus").textContent = `Dane z pliku (${lastMonthLabel}) → cel: lis.27 (h=${hVal})`;
+          calculateAndRender();
+        }
+      } catch (err) {
+        alert("Nie udało się odczytać pliku Excel. Upewnij się, że wybierasz plik Prognoza_Poparcia_Listopad_2027-v2.xlsx");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+
+  document.getElementById("phiSlider").addEventListener("input", calculateAndRender);
+  document.getElementById("expSlider").addEventListener("input", calculateAndRender);
+
+  calculateAndRender();
+</script>
+</body>
+</html>
