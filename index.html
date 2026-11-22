@@ -353,7 +353,14 @@
 
     <div class="card">
       <div class="card-title">
-        <span>Parametry modelu (D'Hondt stały: 1,15)</span>
+        <span>Parametry modelu i D'Hondta</span>
+      </div>
+      <div class="auto-toggle">
+        <span><strong>Tryb D'Hondta:</strong> <span id="dhondtModeDesc">Okręgowy (1,15 — realny Sejm)</span></span>
+        <select id="dhondtSelect" style="background:#1e293b; color:#f8fafc; border:1px solid rgba(148,163,184,0.35); border-radius:8px; padding:4px 8px; font-size:0.75rem; font-weight:700;">
+          <option value="1.15" selected>1,15 (41 okręgów)</option>
+          <option value="1.00">1,00 (1 okręg krajowy)</option>
+        </select>
       </div>
       <label class="auto-toggle">
         <span><strong>AUTO φ i okno trendu</strong> (wg liczby mies. do 11/2027)</span>
@@ -425,7 +432,7 @@
     "lip.27", "sie.27", "wrz.27", "paź.27", "lis.27"
   ];
 
-  const DHONDT_EXP = 1.15;
+  let dhondtExp = 1.15;
 
   // Pełne serie 13-miesięczne (null dla okresów przed powstaniem R+)
   let dataset = [
@@ -488,11 +495,11 @@
       const diffVal = hasAvg ? (aggAvg - last) : 0;
       const diffAbs = Math.abs(diffVal);
 
-      // Rola kotwicy jest silniejsza dla większej różnicy |kotwica - ostatni punkt regresji|
-      // oraz dłuższego okresu (h), a przy małej różnicy tylko potwierdza trend.
-      const hScale = 0.6 + 0.4 * Math.min(1, h / 12);
-      const wAnchor = hasAvg ? Math.max(0.15, Math.min(0.70, corrWeight + 0.06 * diffAbs * hScale)) : 0;
+      // Rola kotwicy zgodna 1:1 z formułą w XLSX (kolumny AJ, AK, AL, AM):
+      const hScale = 0.5 + 0.5 * Math.min(1, h / 12);
+      const wAnchor = hasAvg ? Math.min(0.70, Math.max(corrWeight * 0.5, corrWeight + 0.06 * diffAbs * hScale)) : 0;
       const anchor = hasAvg ? ((1 - wAnchor) * last + wAnchor * aggAvg) : last;
+      const adjTrend = trend + 0.15 * wAnchor * Math.min(1, h / 12) * (diffVal / Math.max(1, h));
 
       // Buduj pełną 25-miesięczną trajektorię (historia + przyszłość do lis.27)
       const histLine = new Array(25).fill(null);
@@ -511,8 +518,6 @@
       // Punkt startowy linii projekcji łączy się z ostatnim punktem historycznym
       projLine[partyLastIdx] = last;
       for (let step = 1; step <= h; step++) {
-        const stepLongFactor = Math.min(1, step / 12);
-        const adjTrend = trend + 0.12 * wAnchor * stepLongFactor * (diffVal / Math.max(1, h));
         const multStep = phi * (1 - Math.pow(phi, step)) / (1 - phi);
         const valStep = Math.max(0, anchor + adjTrend * multStep);
         projLine[partyLastIdx + step] = parseFloat(valStep.toFixed(2));
@@ -540,7 +545,7 @@
     let quotients = [];
     computed.forEach((p, idx) => {
       if (p.forecast >= 5.0) {
-        const w = Math.pow(p.forecast, DHONDT_EXP);
+        const w = Math.pow(p.forecast, dhondtExp);
         for (let q = 1; q <= 250; q++) {
           quotients.push({ val: w / q, idx });
         }
@@ -696,7 +701,7 @@
       });
 
       // 3. Punkt bieżącej średniej miesięcznej (romb)
-      if (avgPoint[lastMonthIdx] !== null) {
+      if (p.avgPoint[p.partyLastIdx] !== null) {
         datasets.push({
           label: `${p.name} (śr. mies. ewybory)`,
           data: p.avgPoint,
@@ -829,6 +834,12 @@
           if (typeof sVal === "number" && !isNaN(sVal)) {
             corrWeight = sVal;
           }
+          const uVal = rows[3][20]; // U4
+          if (typeof uVal === "number" && !isNaN(uVal)) {
+            dhondtExp = uVal;
+            const sel = document.getElementById("dhondtSelect");
+            if (sel) sel.value = uVal.toFixed(2);
+          }
         }
 
         const prevVis = {};
@@ -853,13 +864,15 @@
             }
           }
 
-          const mAvg = (typeof row[28] === "number" && !isNaN(row[28])) ? row[28] : null;
+          const ewVal = (typeof row[28] === "number" && !isNaN(row[28])) ? row[28] : null; // AC
+          const apVal = (typeof row[33] === "number" && !isNaN(row[33])) ? row[33] : null; // AH
+          const ppVal = (typeof row[34] === "number" && !isNaN(row[34])) ? row[34] : null; // AI
           if (hasAny) {
             parsed.push({
               name,
               bloc,
               rawSeries,
-              ewAvg: mAvg, apAvg: null, ppAvg: null,
+              ewAvg: ewVal, apAvg: apVal, ppAvg: ppVal,
               visible: prevVis.hasOwnProperty(name) ? prevVis[name] : true
             });
           }
@@ -879,6 +892,12 @@
 
   document.getElementById("autoMode").addEventListener("change", renderAll);
   document.getElementById("phiSlider").addEventListener("input", renderAll);
+  document.getElementById("dhondtSelect").addEventListener("change", function(e) {
+    dhondtExp = parseFloat(e.target.value);
+    document.getElementById("dhondtModeDesc").textContent =
+      dhondtExp === 1.0 ? "Krajowy (1,00 — bez efektu okręgów)" : "Okręgowy (1,15 — realny Sejm)";
+    renderAll();
+  });
 
   renderAll();
 </script>
