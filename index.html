@@ -37,24 +37,38 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 8px;
       margin-bottom: 12px;
     }
-    h1 { font-size: 1.22rem; font-weight: 700; letter-spacing: -0.02em; }
-    .subtitle { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
-    .upload-btn {
+    h1 { font-size: 1.18rem; font-weight: 700; letter-spacing: -0.02em; }
+    .subtitle { font-size: 0.73rem; color: var(--muted); margin-top: 2px; }
+    .header-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .action-btn {
       background: var(--accent);
       color: #042f2e;
       font-weight: 700;
-      font-size: 0.78rem;
-      padding: 8px 12px;
+      font-size: 0.74rem;
+      padding: 7px 10px;
       border-radius: 10px;
       border: none;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3);
-      flex-shrink: 0;
+      gap: 5px;
+      box-shadow: 0 2px 8px rgba(20, 184, 166, 0.25);
+    }
+    .action-btn.secondary {
+      background: #38bdf8;
+      color: #082f49;
+      box-shadow: 0 2px 8px rgba(56, 189, 248, 0.25);
+    }
+    .action-btn:disabled {
+      opacity: 0.6;
+      cursor: wait;
     }
     input[type="file"] { display: none; }
 
@@ -107,37 +121,41 @@
       align-items: center;
     }
 
+    /* Pasek poziomy dla wszystkich partii z mandatami */
     .sejm-bar-wrap {
       position: relative;
-      height: 28px;
+      height: 36px;
       background: #0f172a;
-      border-radius: 8px;
+      border-radius: 9px;
       overflow: hidden;
       display: flex;
-      margin: 8px 0;
+      margin: 8px 0 6px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
     }
-    .bar-dem {
-      background: linear-gradient(90deg, #0284c7, #38bdf8);
+    .party-seg {
       height: 100%;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      padding-left: 10px;
-      font-weight: 800;
-      font-size: 0.85rem;
-      color: #082f49;
+      justify-content: center;
+      overflow: hidden;
+      border-right: 1px solid rgba(15, 23, 42, 0.65);
       transition: width 0.35s ease;
+      padding: 0 2px;
+      line-height: 1.05;
     }
-    .bar-right {
-      background: linear-gradient(90deg, #f87171, #dc2626);
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      padding-right: 10px;
+    .party-seg:last-of-type { border-right: none; }
+    .seg-name {
+      font-size: 0.60rem;
       font-weight: 800;
-      font-size: 0.85rem;
-      color: #450a0a;
-      transition: width 0.35s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+    .seg-seats {
+      font-size: 0.78rem;
+      font-weight: 900;
+      white-space: nowrap;
     }
     .majority-line {
       position: absolute;
@@ -146,8 +164,25 @@
       bottom: 0;
       width: 2px;
       background: #facc15;
-      z-index: 3;
+      box-shadow: 0 0 6px rgba(250, 204, 21, 0.85);
+      z-index: 4;
     }
+    .seg-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      margin-top: 6px;
+      margin-bottom: 6px;
+      font-size: 0.71rem;
+      color: var(--muted);
+    }
+    .seg-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 600;
+    }
+
     .bloc-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -184,7 +219,6 @@
       font-weight: 700;
     }
     .badge-out { background: rgba(148, 163, 184, 0.16); color: var(--muted); }
-    .badge-bubble { background: var(--warn-bg); color: var(--warn); border: 1px solid rgba(251, 191, 36, 0.35); }
     .party-right { text-align: right; display: flex; align-items: baseline; gap: 7px; }
     .pct { font-weight: 800; font-size: 0.96rem; }
     .seats-pill {
@@ -221,6 +255,20 @@
     input[type="range"] { width: 100%; accent-color: var(--accent); }
     .status-note { font-size: 0.72rem; color: var(--muted); text-align: center; margin-top: 8px; line-height: 1.35; }
 
+    /* Status aktualizacji z sieci */
+    .sync-banner {
+      background: #0f172a;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 10px;
+      padding: 8px 10px;
+      margin-bottom: 12px;
+      font-size: 0.73rem;
+      color: var(--muted);
+      display: none;
+      line-height: 1.4;
+    }
+    .sync-banner.visible { display: block; }
+
     /* Zakładka Wykres */
     .filter-chips {
       display: flex;
@@ -249,7 +297,7 @@
     }
     .chart-box {
       position: relative;
-      height: 330px;
+      height: 335px;
       width: 100%;
     }
     .legend-guide {
@@ -269,14 +317,20 @@
     }
     .sym-line {
       width: 22px;
-      height: 1.5px;
+      height: 1.8px;
       background: var(--text);
       display: inline-block;
     }
     .sym-dash {
       width: 22px;
       height: 0;
-      border-top: 1.5px dashed var(--accent);
+      border-top: 1.8px dashed var(--accent);
+      display: inline-block;
+    }
+    .sym-thresh {
+      width: 22px;
+      height: 2.5px;
+      background: #facc15;
       display: inline-block;
     }
     .sym-diamond {
@@ -305,11 +359,18 @@
       <h1>Prognoza Sejm 2027</h1>
       <div class="subtitle" id="dataStatus">Baza: lis.26 → cel: lis.27 (h=12) • AUTO φ=0,80</div>
     </div>
-    <label class="upload-btn">
-      📂 Wczytaj .xlsx
-      <input type="file" id="xlsxInput" accept=".xlsx,.xls" />
-    </label>
+    <div class="header-actions">
+      <button class="action-btn secondary" id="syncWebBtn" title="Pobierz bieżące średnie sondaży z agregatorów">
+        🔄 Aktualizuj
+      </button>
+      <label class="action-btn">
+        📂 .xlsx
+        <input type="file" id="xlsxInput" accept=".xlsx,.xls" />
+      </label>
+    </div>
   </header>
+
+  <div id="syncBanner" class="sync-banner"></div>
 
   <!-- Przełącznik podstron -->
   <nav class="tabs">
@@ -321,24 +382,23 @@
   <section id="view-mandates" class="tab-view active">
     <div class="card">
       <div class="card-title">
-        <span>Podział mandatów (D'Hondt)</span>
+        <span>Podział mandatów (D'Hondt 1,15)</span>
         <span>Większość: 231</span>
       </div>
-      <div class="sejm-bar-wrap">
+      <div class="sejm-bar-wrap" id="partySeatsBar">
         <div class="majority-line" title="Większość 231"></div>
-        <div class="bar-dem" id="barDem" style="width: 58.3%">268</div>
-        <div class="bar-right" id="barRight" style="width: 41.7%">192</div>
       </div>
+      <div class="seg-legend" id="partySeatsLegend"></div>
       <div class="bloc-grid">
         <div class="bloc-box dem">
           <div class="bloc-name">DEMOKRATYCZNE</div>
-          <div class="bloc-seats" id="demSeats">268</div>
-          <div class="bloc-sub" id="demSub">48,0% poparcia (58,3% Sejmu)</div>
+          <div class="bloc-seats" id="demSeats">0</div>
+          <div class="bloc-sub" id="demSub">0,0% poparcia (0,0% Sejmu)</div>
         </div>
         <div class="bloc-box right">
           <div class="bloc-name">PRAWICA</div>
-          <div class="bloc-seats" id="rightSeats">192</div>
-          <div class="bloc-sub" id="rightSub">36,9% poparcia (41,7% Sejmu)</div>
+          <div class="bloc-seats" id="rightSeats">0</div>
+          <div class="bloc-sub" id="rightSub">0,0% poparcia (0,0% Sejmu)</div>
         </div>
       </div>
     </div>
@@ -353,14 +413,7 @@
 
     <div class="card">
       <div class="card-title">
-        <span>Parametry modelu i D'Hondta</span>
-      </div>
-      <div class="auto-toggle">
-        <span><strong>Tryb D'Hondta:</strong> <span id="dhondtModeDesc">Okręgowy (1,15 — realny Sejm)</span></span>
-        <select id="dhondtSelect" style="background:#1e293b; color:#f8fafc; border:1px solid rgba(148,163,184,0.35); border-radius:8px; padding:4px 8px; font-size:0.75rem; font-weight:700;">
-          <option value="1.15" selected>1,15 (41 okręgów)</option>
-          <option value="1.00">1,00 (1 okręg krajowy)</option>
-        </select>
+        <span>Parametry modelu (D'Hondt okręgowy 1,15)</span>
       </div>
       <label class="auto-toggle">
         <span><strong>AUTO φ i okno trendu</strong> (wg liczby mies. do 11/2027)</span>
@@ -373,7 +426,7 @@
         </div>
         <input type="range" id="phiSlider" min="0.60" max="0.95" step="0.05" value="0.80" disabled />
       </div>
-      <div class="status-note">Tryb AUTO: h&gt;8 → φ=0,80 (okno 3m) • h=5..8 → φ=0,85 (3m) • h≤4 → φ=0,75 (2m). Korekta śr. mies.: 30%.</div>
+      <div class="status-note">Tryb AUTO: h&gt;8 → φ=0,80 • h=5..8 → φ=0,85 • h≤4 → φ=0,75. Ważony trend z ostatnich 4 mies. + miękka kotwica z agregatorów (100% zgodne z XLSX v6).</div>
     </div>
   </section>
 
@@ -386,7 +439,7 @@
       </div>
 
       <label class="auto-toggle" style="margin-bottom: 10px;">
-        <span><strong>Auto-wykres progu 5%:</strong> pokaż od razu partie z szansą na przebicie 5%</span>
+        <span><strong>Auto-wykres blisko progu 5%:</strong> pokaż od razu partie zbliżające się do 5% (&lt;0,5 p.p.)</span>
         <input type="checkbox" id="autoShowNear5" checked style="width:18px; height:18px; accent-color:#14b8a6;" />
       </label>
       <div class="filter-chips" id="partyChips"></div>
@@ -397,16 +450,20 @@
 
       <div class="legend-guide">
         <div class="legend-item">
+          <span class="sym-thresh"></span>
+          <span><strong>Linia progu 5%:</strong> wyraźna granica wejścia do Sejmu (obszar poniżej 5% we mgle)</span>
+        </div>
+        <div class="legend-item">
           <span class="sym-line"></span>
           <span><strong>Linia ciągła:</strong> historyczna krzywa regresji z tabeli</span>
         </div>
         <div class="legend-item">
           <span class="sym-dash"></span>
-          <span><strong>Linia przerywana:</strong> wygaszana projekcja trendu (model Holta)</span>
+          <span><strong>Linia przerywana:</strong> wygaszana projekcja trendu</span>
         </div>
         <div class="legend-item">
           <span class="sym-diamond"></span>
-          <span><strong>Romb (◆):</strong> średnia z 3 agregatorów (ewybory.eu, Atlas Polit., PolitPro — kotwica)</span>
+          <span><strong>Romb (◆):</strong> średnia z 3 agregatorów (ewybory.eu, Atlas Polit., PolitPro)</span>
         </div>
         <div class="legend-item">
           <span class="sym-target"></span>
@@ -429,6 +486,18 @@
     PL2050: "#eab308"
   };
 
+  const TEXT_ON_COLOR = {
+    KO: "#fff7ed",
+    PIS: "#eff6ff",
+    KONF: "#0f172a",
+    KPP: "#fef2f2",
+    LEWICA: "#fff1f2",
+    RAZEM: "#3b0764",
+    PSL: "#052e16",
+    "R+": "#083344",
+    PL2050: "#422006"
+  };
+
   const MONTHS_25 = [
     "lis.25", "gru.25", "sty.26", "lut.26", "mar.26", "kwi.26", "maj.26", "cze.26",
     "lip.26", "sie.26", "wrz.26", "paź.26", "lis.26",
@@ -436,22 +505,21 @@
     "lip.27", "sie.27", "wrz.27", "paź.27", "lis.27"
   ];
 
-  let dhondtExp = 1.15;
+  // Stały wykładnik D'Hondta dla 41 okręgów (zgodny z XLSX U4 = 1.15)
+  const DHONDT_EXP = 1.15;
 
-  // Pełne serie 13-miesięczne (null dla okresów przed powstaniem R+)
   let dataset = [
     { name: "KO",     bloc: "Demokratyczny", rawSeries: [31.30, 31.30, 31.20, 31.20, 31.20, 31.20, 31.20, 31.20, 31.20, 31.30, 31.30, 31.40, 31.50], ewAvg: 31.60, apAvg: 32.40, ppAvg: 32.60, visible: true },
     { name: "PIS",    bloc: "Prawica",       rawSeries: [27.40, 27.00, 26.50, 26.00, 25.40, 24.70, 24.00, 23.20, 22.30, 21.40, 20.30, 19.20, 18.00], ewAvg: 20.20, apAvg: 21.90, ppAvg: 22.20, visible: true },
     { name: "KONF",   bloc: "Prawica",       rawSeries: [13.70, 13.70, 13.60, 13.50, 13.40, 13.30, 13.20, 13.10, 13.00, 12.90, 12.80, 12.70, 12.50], ewAvg: 13.30, apAvg: 14.10, ppAvg: 13.70, visible: true },
     { name: "KPP",    bloc: "Prawica",       rawSeries: [7.00,  7.40,  7.70,  8.00,  8.20,  8.50,  8.60,  8.70,  8.80,  8.90,  8.90,  8.80,  8.70],  ewAvg: 8.50,  apAvg: 9.10,  ppAvg: 8.50,  visible: true },
     { name: "LEWICA", bloc: "Demokratyczny", rawSeries: [6.20,  6.10,  6.10,  6.10,  6.10,  6.20,  6.20,  6.30,  6.40,  6.60,  6.80,  7.00,  7.30],  ewAvg: 6.40,  apAvg: 7.30,  ppAvg: 7.30,  visible: true },
-    { name: "R+",     bloc: "Prawica",       rawSeries: [null,  null,  null,  null,  null,  null,  null,  null,  5.40,  5.20,  5.10,  4.90,  4.80],  ewAvg: 4.60,  apAvg: 4.70,  ppAvg: 4.70,  visible: true },
+    { name: "R+",     bloc: "Prawica",       rawSeries: [null,  null,  null,  null,  null,  null,  null,  null,  5.40,  5.20,  5.10,  4.90,  4.80],  ewAvg: 4.60,  apAvg: 4.70,  ppAvg: 4.70,  visible: false },
     { name: "PSL",    bloc: "Demokratyczny", rawSeries: [2.80,  2.80,  2.80,  2.80,  2.80,  2.80,  2.90,  2.90,  2.90,  3.00,  3.10,  3.20,  3.30],  ewAvg: null,  apAvg: 3.00,  ppAvg: 3.50,  visible: false },
     { name: "RAZEM",  bloc: "Demokratyczny", rawSeries: [3.90,  4.00,  4.10,  4.10,  4.10,  4.10,  4.00,  4.00,  3.90,  3.70,  3.60,  3.40,  3.20],  ewAvg: null,  apAvg: 4.40,  ppAvg: 4.20,  visible: false },
     { name: "PL2050", bloc: "Demokratyczny", rawSeries: [2.40,  2.20,  2.00,  1.80,  1.70,  1.60,  1.50,  1.40,  1.40,  1.30,  1.30,  1.30,  1.40],  ewAvg: null,  apAvg: 1.70,  ppAvg: 1.70,  visible: false }
   ];
 
-  let corrWeight = 0.30;
   let lastMonthIdx = 12; // indeks 12 = lis.26 (0..24)
   let chartInstance = null;
 
@@ -464,6 +532,27 @@
   function getAutoWindow(h) {
     return h <= 4 ? 2 : 3;
   }
+
+  // Wtyczka rysująca lekką mgiełkę poniżej progu 5% na wykresie
+  const belowThresholdFogPlugin = {
+    id: "belowThresholdFog",
+    beforeDatasetsDraw(chart) {
+      const { ctx, chartArea, scales } = chart;
+      if (!chartArea || !scales.y) return;
+      const y5 = scales.y.getPixelForValue(5.0);
+      const yBottom = chartArea.bottom;
+      if (yBottom <= y5) return;
+
+      ctx.save();
+      const grad = ctx.createLinearGradient(0, y5, 0, yBottom);
+      grad.addColorStop(0, "rgba(250, 204, 21, 0.13)");
+      grad.addColorStop(0.35, "rgba(148, 163, 184, 0.14)");
+      grad.addColorStop(1, "rgba(15, 23, 42, 0.34)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(chartArea.left, y5, chartArea.right - chartArea.left, yBottom - y5);
+      ctx.restore();
+    }
+  };
 
   function computeModel() {
     const isAuto = document.getElementById("autoMode").checked;
@@ -478,7 +567,6 @@
     document.getElementById("phiVal").textContent = phi.toFixed(2);
 
     const computed = dataset.map(p => {
-      // Odfiltruj niepuste punkty historyczne
       const validPoints = [];
       p.rawSeries.forEach((v, idx) => {
         if (typeof v === "number" && !isNaN(v)) validPoints.push({ val: v, idx });
@@ -489,17 +577,7 @@
       const partyLastIdx = lastObj.idx;
       const h = Math.max(0, 24 - partyLastIdx);
 
-      const k = Math.min(win, validPoints.length - 1);
-      const prev = validPoints[validPoints.length - 1 - k].val;
-      const trend = k > 0 ? (last - prev) / k : 0;
-
-      const srcVals = [p.ewAvg, p.apAvg, p.ppAvg].filter(v => typeof v === "number" && !isNaN(v));
-      const aggAvg = srcVals.length > 0 ? (srcVals.reduce((a, b) => a + b, 0) / srcVals.length) : null;
-      const hasAvg = (typeof aggAvg === "number" && !isNaN(aggAvg));
-      const diffVal = hasAvg ? (aggAvg - last) : 0;
-      const diffAbs = Math.abs(diffVal);
-
-      // Ważony trend z ostatnich przyrostów miesięcznych (do 4 kroków): wagi [0.45, 0.25, 0.18, 0.12]
+      // Ważony trend z ostatnich 4 kroków miesięcznych: [0.45, 0.25, 0.18, 0.12] — identycznie jak w XLSX v6
       const slopeWeights = [0.45, 0.25, 0.18, 0.12];
       const stepDiffs = [];
       for (let m = validPoints.length - 1; m >= 1 && stepDiffs.length < 4; m--) {
@@ -509,20 +587,25 @@
           stepDiffs.push(cur.val - prevPt.val);
         }
       }
-      let weightedTrend = trend;
+      let weightedTrend = 0;
       if (stepDiffs.length > 0) {
         const usedW = slopeWeights.slice(0, stepDiffs.length);
         const sumW = usedW.reduce((a, b) => a + b, 0);
         weightedTrend = stepDiffs.reduce((acc, d, i) => acc + d * (usedW[i] / sumW), 0);
       }
 
-      // Miękka kotwica bez sztucznej górki na starcie (zgodna z formułami w XLSX v5)
+      const srcVals = [p.ewAvg, p.apAvg, p.ppAvg].filter(v => typeof v === "number" && !isNaN(v));
+      const aggAvg = srcVals.length > 0 ? (srcVals.reduce((a, b) => a + b, 0) / srcVals.length) : null;
+      const hasAvg = (typeof aggAvg === "number" && !isNaN(aggAvg));
+      const diffVal = hasAvg ? (aggAvg - last) : 0;
+      const diffAbs = Math.abs(diffVal);
+
+      // Identyczne formuły jak w XLSX v6 (kolumny AL, AM, AE):
       const wAnchor = hasAvg ? Math.min(0.35, 0.15 + 0.03 * diffAbs) : 0;
       const startBase = hasAvg ? (last + 0.35 * wAnchor * diffVal) : last;
       const multH = Math.max(0.01, phi * (1 - Math.pow(phi, Math.max(1, h))) / (1 - phi));
       const adjTrend = weightedTrend + (hasAvg ? (0.40 * wAnchor * (diffVal / multH)) : 0);
 
-      // Buduj pełną 25-miesięczną trajektorię (historia + przyszłość do lis.27)
       const histLine = new Array(25).fill(null);
       const projLine = new Array(25).fill(null);
       const avgPoint = new Array(25).fill(null);
@@ -533,21 +616,23 @@
       }
 
       if (hasAvg) {
-        avgPoint[partyLastIdx] = parseFloat(aggAvg.toFixed(2));
+        avgPoint[partyLastIdx] = aggAvg;
       }
 
-      // Punkt startowy linii projekcji łączy się z ostatnim punktem historycznym
       projLine[partyLastIdx] = last;
+      let rawForecast = last;
       for (let step = 1; step <= h; step++) {
         const multStep = phi * (1 - Math.pow(phi, step)) / (1 - phi);
         const valStep = Math.max(0, startBase + adjTrend * multStep);
-        projLine[partyLastIdx + step] = parseFloat(valStep.toFixed(2));
+        projLine[partyLastIdx + step] = valStep;
+        if (step === h) rawForecast = valStep;
       }
 
-      const forecast = h > 0 ? projLine[24] : last;
-      targetPoint[24] = parseFloat(forecast.toFixed(2));
-      const maxAgg = hasAvg ? Math.max(...srcVals) : last;
-      const hasChanceAbove5 = (forecast >= 4.0) || (maxAgg >= 5.0 && forecast >= 3.2);
+      const forecast = h > 0 ? rawForecast : last;
+      targetPoint[24] = forecast;
+
+      // Czy partia zbliża się do progu 5% na mniej niż ok. 0,5 p.p. (w prognozie lub dowolnym punkcie trajektorii projekcji)
+      const isNear5 = Math.abs(forecast - 5.0) <= 0.65 || (forecast >= 4.35 && forecast <= 5.50);
 
       return {
         ...p,
@@ -556,7 +641,7 @@
         h,
         trend: weightedTrend,
         forecast,
-        hasChanceAbove5,
+        isNear5,
         seats: 0,
         histLine,
         projLine,
@@ -565,11 +650,11 @@
       };
     });
 
-    // Podział 460 mandatów metodą D'Hondta (próg 5%, stały wykładnik 1.15)
+    // Podział 460 mandatów metodą D'Hondta (próg 5%, wykładnik 1.15 — bez zaokrąglania pośredniego, 1:1 jak Kalkulator_DHondt w XLSX)
     let quotients = [];
     computed.forEach((p, idx) => {
       if (p.forecast >= 5.0) {
-        const w = Math.pow(p.forecast, dhondtExp);
+        const w = Math.pow(p.forecast, DHONDT_EXP);
         for (let q = 1; q <= 250; q++) {
           quotients.push({ val: w / q, idx });
         }
@@ -587,12 +672,46 @@
     const { computed, hMain, phi, win, isAuto } = computeModel();
     const sorted = [...computed].sort((a, b) => b.forecast - a.forecast);
 
-    // Status u góry
     const lastLbl = MONTHS_25[lastMonthIdx] || "lis.26";
     document.getElementById("dataStatus").textContent =
-      `Baza: ${lastLbl} → cel: lis.27 (h=${hMain}) • ${isAuto ? 'AUTO ' : ''}φ=${phi.toFixed(2)} (${win}m)`;
+      `Baza: ${lastLbl} → cel: lis.27 (h=${hMain}) • ${isAuto ? 'AUTO ' : ''}φ=${phi.toFixed(2)}`;
 
-    // Sumy bloków
+    // Pasek poziomy głównego ekranu z mandatami dla wszystkich partii wchodzących do Sejmu
+    const barEl = document.getElementById("partySeatsBar");
+    const legEl = document.getElementById("partySeatsLegend");
+    barEl.innerHTML = '<div class="majority-line" title="Większość 231"></div>';
+    legEl.innerHTML = "";
+
+    // Uporządkuj na pasku blokami: najpierw Demokratyczne, potem Prawica, aby linia 231 była czytelna
+    const demParties = sorted.filter(p => p.seats > 0 && p.bloc.toLowerCase().includes("dem"));
+    const rightParties = sorted.filter(p => p.seats > 0 && !p.bloc.toLowerCase().includes("dem"));
+    const barParties = [...demParties, ...rightParties];
+
+    barParties.forEach(p => {
+      const share = (p.seats / 460) * 100;
+      const bg = COLORS[p.name] || "#64748b";
+      const fg = TEXT_ON_COLOR[p.name] || "#ffffff";
+      const seg = document.createElement("div");
+      seg.className = "party-seg";
+      seg.style.width = share + "%";
+      seg.style.background = bg;
+      seg.style.color = fg;
+      seg.title = `${p.name}: ${p.seats} mandatów (${p.forecast.toFixed(2)}%)`;
+
+      if (share >= 8.5) {
+        seg.innerHTML = `<span class="seg-name">${p.name}</span><span class="seg-seats">${p.seats}</span>`;
+      } else if (share >= 4.2) {
+        seg.innerHTML = `<span class="seg-seats">${p.seats}</span>`;
+      }
+      barEl.appendChild(seg);
+
+      const item = document.createElement("span");
+      item.className = "seg-legend-item";
+      item.innerHTML = `<span class="dot" style="background:${bg}; width:8px; height:8px;"></span>${p.name}: <strong style="color:#f8fafc">${p.seats}</strong>`;
+      legEl.appendChild(item);
+    });
+
+    // Sumy bloków w prostokątach poniżej
     let demSeats = 0, rightSeats = 0, demPct = 0, rightPct = 0;
     sorted.forEach(p => {
       if (p.bloc.toLowerCase().includes("dem")) {
@@ -607,17 +726,12 @@
     const demShare = (demSeats / 460) * 100;
     const rightShare = (rightSeats / 460) * 100;
 
-    document.getElementById("barDem").style.width = demShare + "%";
-    document.getElementById("barDem").textContent = demSeats;
-    document.getElementById("barRight").style.width = rightShare + "%";
-    document.getElementById("barRight").textContent = rightSeats;
-
     document.getElementById("demSeats").textContent = demSeats;
     document.getElementById("demSub").textContent = `${demPct.toFixed(1)}% poparcia (${demShare.toFixed(1)}% Sejmu)`;
     document.getElementById("rightSeats").textContent = rightSeats;
     document.getElementById("rightSub").textContent = `${rightPct.toFixed(1)}% poparcia (${rightShare.toFixed(1)}% Sejmu)`;
 
-    // Lista partii (Podstrona 1)
+    // Lista partii (bez opisu "STREFA PROGU 4-6%")
     const listEl = document.getElementById("partyList");
     listEl.innerHTML = "";
     const maxPct = Math.max(...sorted.map(p => p.forecast), 35);
@@ -625,14 +739,11 @@
     sorted.forEach(p => {
       const color = COLORS[p.name] || "#94a3b8";
       const inSejm = p.seats > 0;
-      const inBubble = p.forecast >= 4.0 && p.forecast <= 6.0;
       const barW = Math.min(100, (p.forecast / maxPct) * 100);
       const diff = p.forecast - p.last;
       const diffStr = (diff >= 0 ? "+" : "") + diff.toFixed(1);
 
-      let badgeHtml = "";
-      if (inBubble) badgeHtml = '<span class="badge badge-bubble">STREFA PROGU 4–6%</span>';
-      else if (!inSejm) badgeHtml = '<span class="badge badge-out">&lt;5%</span>';
+      const badgeHtml = !inSejm ? '<span class="badge badge-out">&lt;5%</span>' : "";
 
       const row = document.createElement("div");
       row.className = "party-row";
@@ -657,7 +768,6 @@
     });
 
     applyAutoNear5(computed);
-    // Chipy wyboru partii i wykres (Podstrona 2)
     renderChips(computed);
     renderChart(computed);
   }
@@ -666,7 +776,7 @@
     const autoNear5El = document.getElementById("autoShowNear5");
     if (!autoNear5El || !autoNear5El.checked) return;
     computed.forEach(comp => {
-      if (comp.hasChanceAbove5) {
+      if (comp.isNear5) {
         const dsItem = dataset.find(d => d.name === comp.name);
         if (dsItem) dsItem.visible = true;
       }
@@ -679,7 +789,7 @@
     dataset.forEach((p, idx) => {
       const color = COLORS[p.name] || "#94a3b8";
       const compItem = computed ? computed.find(c => c.name === p.name) : null;
-      const nearTag = (compItem && compItem.hasChanceAbove5) ? ' <span style="color:#fbbf24;">★≥5%</span>' : '';
+      const nearTag = (compItem && compItem.isNear5) ? ' <span style="color:#fbbf24;">≈5%</span>' : '';
       const btn = document.createElement("button");
       btn.className = "chip" + (p.visible ? " active" : "");
       btn.innerHTML = `<span class="dot" style="background:${color}; width:8px; height:8px;"></span>${p.name}${nearTag}`;
@@ -695,13 +805,13 @@
     const ctx = document.getElementById("trendChart").getContext("2d");
     const datasets = [];
 
-    // Linia progu wyborczego 5%
+    // Wzmocniona linia progu wyborczego 5%
     datasets.push({
-      label: "Próg 5%",
+      label: "Próg wyborczy 5%",
       data: new Array(25).fill(5.0),
-      borderColor: "rgba(250, 204, 21, 0.45)",
-      borderWidth: 0.8,
-      borderDash: [4, 4],
+      borderColor: "#facc15",
+      borderWidth: 2.2,
+      borderDash: [7, 4],
       pointRadius: 0,
       fill: false,
       order: 10
@@ -711,41 +821,38 @@
       if (!p.visible) return;
       const color = COLORS[p.name] || "#94a3b8";
 
-      // 1. Linia historyczna regresji
       datasets.push({
         label: `${p.name} (regresja)`,
         data: p.histLine,
         borderColor: color,
         backgroundColor: color,
-        borderWidth: 1.3,
-        pointRadius: 1.0,
-        pointHoverRadius: 4,
+        borderWidth: 1.7,
+        pointRadius: 1.5,
+        pointHoverRadius: 4.5,
         tension: 0.25,
         order: 3
       });
 
-      // 2. Linia projekcji trendu (przerywana)
       datasets.push({
         label: `${p.name} (projekcja)`,
         data: p.projLine,
         borderColor: color,
         backgroundColor: color,
-        borderWidth: 1.1,
+        borderWidth: 1.6,
         borderDash: [5, 4],
         pointRadius: 0,
-        pointHoverRadius: 4,
+        pointHoverRadius: 4.5,
         tension: 0.25,
         order: 4
       });
 
-      // 3. Punkt bieżącej średniej miesięcznej (romb)
       if (p.avgPoint[p.partyLastIdx] !== null) {
         datasets.push({
-          label: `${p.name} (śr. mies. ewybory)`,
+          label: `${p.name} (śr. agregatorów)`,
           data: p.avgPoint,
           borderColor: "#ffffff",
           backgroundColor: color,
-          borderWidth: 0.8,
+          borderWidth: 0.9,
           pointStyle: "rectRot",
           pointRadius: 4.5,
           pointHoverRadius: 6.5,
@@ -754,7 +861,6 @@
         });
       }
 
-      // 4. Punkt docelowy listopad 2027 (koło z białą obwódką)
       datasets.push({
         label: `${p.name} → lis.27 (${p.forecast.toFixed(1)}%)`,
         data: p.targetPoint,
@@ -779,6 +885,7 @@
         labels: MONTHS_25,
         datasets: datasets
       },
+      plugins: [belowThresholdFogPlugin],
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -795,9 +902,8 @@
             borderColor: "rgba(148, 163, 184, 0.3)",
             borderWidth: 1,
             filter: function(item) {
-              // Nie dubluj w tooltipie punktu styku regresji i projekcji
               if (item.dataset.label.includes("(projekcja)") && item.dataIndex === lastMonthIdx) return false;
-              if (item.dataset.label === "Próg 5%") return false;
+              if (item.dataset.label === "Próg wyborczy 5%") return false;
               return item.parsed.y !== null;
             },
             callbacks: {
@@ -833,6 +939,107 @@
     });
   }
 
+  // Pobieranie aktualnych średnich miesięcznych z odpowiednich stron (ewybory.eu, Atlas Polityczny, PolitPro)
+  async function fetchWithCorsFallback(targetUrl) {
+    const proxies = [
+      url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+      url => `https://corsproxy.io/?${encodeURIComponent(url)}`
+    ];
+    for (const makeProxy of proxies) {
+      try {
+        const resp = await fetch(makeProxy(targetUrl), { cache: "no-store" });
+        if (resp.ok) {
+          const txt = await resp.text();
+          if (txt && txt.length > 200) return txt;
+        }
+      } catch (e) { /* spróbuj kolejnego proxy */ }
+    }
+    return null;
+  }
+
+  function extractPartyPercentages(htmlText, patternsMap) {
+    const doc = new DOMParser().parseFromString(htmlText, "text/html");
+    const cleanText = (doc.body ? doc.body.innerText : htmlText).replace(/\s+/g, " ");
+    const found = {};
+    for (const [partyCode, regexList] of Object.entries(patternsMap)) {
+      for (const rx of regexList) {
+        const m = cleanText.match(rx);
+        if (m && m[1]) {
+          const val = parseFloat(m[1].replace(",", "."));
+          if (!isNaN(val) && val > 0.2 && val < 60) {
+            found[partyCode] = val;
+            break;
+          }
+        }
+      }
+    }
+    return found;
+  }
+
+  async function syncAggregatorsFromWeb() {
+    const btn = document.getElementById("syncWebBtn");
+    const banner = document.getElementById("syncBanner");
+    btn.disabled = true;
+    btn.textContent = "⏳ Pobieranie...";
+    banner.classList.add("visible");
+    banner.innerHTML = "Łączenie ze stronami agregatorów: <strong>ewybory.eu</strong>, <strong>atlaspolityczny.pl</strong>, <strong>politpro.eu</strong>...";
+
+    const partyPatterns = {
+      KO:     [/Koalicja Obywatelska[^0-9]{0,35}(\d{1,2}[.,]\d{1,2})\s*%/i, /\bKO\b[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})\s*%/i],
+      PIS:    [/Prawo i Sprawiedliwość[^0-9]{0,35}(\d{1,2}[.,]\d{1,2})\s*%/i, /\bPiS\b[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})\s*%/i],
+      KONF:   [/Konfederacja(?!\s+Korony)[^0-9]{0,35}(\d{1,2}[.,]\d{1,2})\s*%/i],
+      KPP:    [/Konfederacja Korony Polskiej[^0-9]{0,35}(\d{1,2}[.,]\d{1,2})\s*%/i, /\bKKP\b[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})\s*%/i],
+      LEWICA: [/Nowa Lewica[^0-9]{0,35}(\d{1,2}[.,]\d{1,2})\s*%/i, /\bLewica\b[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})\s*%/i],
+      "R+":   [/Rozwój Plus[^0-9]{0,35}(\d{1,2}[.,]\d{1,2})\s*%/i, /\bR\+\b[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})\s*%/i],
+      PSL:    [/Polskie Stronnictwo Ludowe[^0-9]{0,35}(\d{1,2}[.,]\d{1,2})\s*%/i, /\bPSL\b[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})\s*%/i],
+      RAZEM:  [/Partia Razem[^0-9]{0,35}(\d{1,2}[.,]\d{1,2})\s*%/i, /\bRazem\b[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})\s*%/i],
+      PL2050: [/Polska 2050[^0-9]{0,35}(\d{1,2}[.,]\d{1,2})\s*%/i]
+    };
+
+    const sources = [
+      { key: "ewAvg", name: "ewybory.eu",        url: "https://ewybory.eu/sondaze/" },
+      { key: "apAvg", name: "Atlas Polityczny",  url: "https://atlaspolityczny.pl/sondaze/" },
+      { key: "ppAvg", name: "PolitPro",          url: "https://politpro.eu/pl/polska" }
+    ];
+
+    let updatedSources = [];
+    let failedSources = [];
+
+    for (const src of sources) {
+      const html = await fetchWithCorsFallback(src.url);
+      if (!html) {
+        failedSources.push(src.name);
+        continue;
+      }
+      const parsed = extractPartyPercentages(html, partyPatterns);
+      const count = Object.keys(parsed).length;
+      if (count >= 3) {
+        dataset.forEach(p => {
+          if (typeof parsed[p.name] === "number") {
+            p[src.key] = parsed[p.name];
+          }
+        });
+        updatedSources.push(`${src.name} (${count} partii)`);
+      } else {
+        failedSources.push(src.name);
+      }
+    }
+
+    renderAll();
+    btn.disabled = false;
+    btn.textContent = "🔄 Aktualizuj";
+
+    const nowStr = new Date().toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
+    if (updatedSources.length > 0) {
+      banner.innerHTML = `✅ Zaktualizowano (${nowStr}): <strong>${updatedSources.join(", ")}</strong>.` +
+        (failedSources.length > 0 ? ` Pominięto (brak dostępu/CORS): ${failedSources.join(", ")}.` : "");
+    } else {
+      banner.innerHTML = `⚠️ Nie udało się pobrać nowych danych ze źródeł zewnętrznych (blokada sieci/CORS w przeglądarce). Zachowano ostatnie wartości z bazy.`;
+    }
+  }
+
+  document.getElementById("syncWebBtn").addEventListener("click", syncAggregatorsFromWeb);
+
   // Nawigacja zakładek
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -867,16 +1074,6 @@
               document.getElementById("autoMode").checked = false;
               document.getElementById("phiSlider").value = dVal;
             }
-          }
-          const sVal = rows[3][18]; // S4
-          if (typeof sVal === "number" && !isNaN(sVal)) {
-            corrWeight = sVal;
-          }
-          const uVal = rows[3][20]; // U4
-          if (typeof uVal === "number" && !isNaN(uVal)) {
-            dhondtExp = uVal;
-            const sel = document.getElementById("dhondtSelect");
-            if (sel) sel.value = uVal.toFixed(2);
           }
         }
 
@@ -922,7 +1119,7 @@
           renderAll();
         }
       } catch (err) {
-        alert("Nie udało się odczytać pliku Excel. Sprawdź, czy wybierasz plik Prognoza_Poparcia_Listopad_2027-v3.xlsx");
+        alert("Nie udało się odczytać pliku Excel. Sprawdź, czy wybierasz plik Prognoza_Poparcia_Listopad_2027-v6-spojny.xlsx");
       }
     };
     reader.readAsArrayBuffer(file);
@@ -930,12 +1127,6 @@
 
   document.getElementById("autoMode").addEventListener("change", renderAll);
   document.getElementById("phiSlider").addEventListener("input", renderAll);
-  document.getElementById("dhondtSelect").addEventListener("change", function(e) {
-    dhondtExp = parseFloat(e.target.value);
-    document.getElementById("dhondtModeDesc").textContent =
-      dhondtExp === 1.0 ? "Krajowy (1,00 — bez efektu okręgów)" : "Okręgowy (1,15 — realny Sejm)";
-    renderAll();
-  });
   document.getElementById("autoShowNear5").addEventListener("change", renderAll);
 
   renderAll();
