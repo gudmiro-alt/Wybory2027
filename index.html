@@ -927,17 +927,50 @@
     });
   }
 
-  // Pobieranie aktualnych średnich miesięcznych z odpowiednich stron (omijanie CORS przez Jina Reader + bramki CORS + bezpośredni fetch)
+  const STORAGE_KEY = "prognoza_sejm_2027_state_v10";
+
+  function saveCurrentState() {
+    try {
+      const stateObj = {
+        dataset: dataset,
+        lastMonthIdx: lastMonthIdx,
+        autoMode: document.getElementById("autoMode").checked,
+        phiSlider: parseFloat(document.getElementById("phiSlider").value)
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stateObj));
+    } catch (e) { /* brak dostępu do localStorage */ }
+  }
+
+  function loadSavedState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return false;
+      const st = JSON.parse(raw);
+      if (st && Array.isArray(st.dataset) && st.dataset.length > 0) {
+        dataset = st.dataset;
+        if (typeof st.lastMonthIdx === "number") lastMonthIdx = st.lastMonthIdx;
+        if (typeof st.autoMode === "boolean") document.getElementById("autoMode").checked = st.autoMode;
+        if (typeof st.phiSlider === "number") document.getElementById("phiSlider").value = st.phiSlider;
+        return true;
+      }
+    } catch (e) { /* uszkodzony stan */ }
+    return false;
+  }
+
+  // Wpinamy zapis stanu na końcu renderAll()
+  const _origRenderAll = renderAll;
+  renderAll = function() {
+    _origRenderAll();
+    saveCurrentState();
+  };
+
+  // Pobieranie aktualnych średnich miesięcznych ze stron (Jina Reader / CodeTabs / AllOrigins / bezpośredni fetch)
   async function fetchTextSmart(targetUrl) {
     const cleanNoProto = targetUrl.replace(/^https?:\/\//, "");
     const endpoints = [
-      // 1. Jina Reader (renderuje też strony JS jak Atlas Polityczny / PolitPro i zwraca Access-Control-Allow-Origin: *)
       { url: `https://r.jina.ai/http://${cleanNoProto}`, jsonWrap: false },
-      // 2. CodeTabs CORS proxy
       { url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`, jsonWrap: false },
-      // 3. AllOrigins JSON wrapper (często działa nawet z file://)
       { url: `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`, jsonWrap: true },
-      // 4. Bezpośrednie żądanie (gdy serwer źródłowy udostępnia CORS, np. pliki JSON/CSV)
       { url: targetUrl, jsonWrap: false }
     ];
 
@@ -955,7 +988,7 @@
           const txt = await resp.text();
           if (txt && txt.length > 150) return txt;
         }
-      } catch (e) { /* przejdź do kolejnej bramki */ }
+      } catch (e) { /* spróbuj kolejnej bramki */ }
     }
     return null;
   }
@@ -983,38 +1016,115 @@
     return found;
   }
 
-  function openManualEditPanel(bannerEl) {
-    const rowsHtml = dataset.map((p, idx) => `
-      <div style="display:grid; grid-template-columns: 62px 1fr 1fr 1fr; gap:5px; align-items:center; margin-top:5px;">
-        <strong style="font-size:0.74rem; color:#f8fafc;">${p.name}</strong>
-        <input type="number" step="0.1" data-idx="${idx}" data-key="ewAvg" value="${p.ewAvg ?? ''}" placeholder="ewyb." style="width:100%; background:#1e293b; color:#f8fafc; border:1px solid rgba(148,163,184,0.3); border-radius:6px; padding:4px 5px; font-size:0.74rem;" />
-        <input type="number" step="0.1" data-idx="${idx}" data-key="apAvg" value="${p.apAvg ?? ''}" placeholder="Atlas" style="width:100%; background:#1e293b; color:#f8fafc; border:1px solid rgba(148,163,184,0.3); border-radius:6px; padding:4px 5px; font-size:0.74rem;" />
-        <input type="number" step="0.1" data-idx="${idx}" data-key="ppAvg" value="${p.ppAvg ?? ''}" placeholder="PolitPro" style="width:100%; background:#1e293b; color:#f8fafc; border:1px solid rgba(148,163,184,0.3); border-radius:6px; padding:4px 5px; font-size:0.74rem;" />
-      </div>
-    `).join("");
+  function openReviewChangesPanel(bannerEl, proposedValues, headerMessage) {
+    // Tworzymy kopię roboczą (staging) proponowanych wartości
+    const keys = ["ewAvg", "apAvg", "ppAvg"];
 
-    bannerEl.innerHTML += `
-      <div style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(148,163,184,0.2);">
-        <div style="display:grid; grid-template-columns: 62px 1fr 1fr 1fr; gap:5px; font-size:0.68rem; color:#94a3b8; font-weight:700;">
-          <span>Partia</span><span>ewybory.eu</span><span>Atlas Polit.</span><span>PolitPro</span>
-        </div>
-        ${rowsHtml}
-        <button id="saveManualAggBtn" style="margin-top:8px; width:100%; background:#14b8a6; color:#042f2e; font-weight:800; border:none; border-radius:8px; padding:7px; font-size:0.76rem; cursor:pointer;">
-          Zastosuj wpisane wartości
-        </button>
-      </div>
-    `;
-
-    document.getElementById("saveManualAggBtn").onclick = () => {
-      bannerEl.querySelectorAll("input[data-idx]").forEach(inp => {
-        const i = parseInt(inp.dataset.idx, 10);
-        const k = inp.dataset.key;
-        const v = parseFloat(inp.value);
-        dataset[i][k] = (!isNaN(v) && v > 0) ? v : null;
+    function countChanges() {
+      let changed = 0;
+      dataset.forEach((p, idx) => {
+        keys.forEach(k => {
+          const oldV = (typeof p[k] === "number" && !isNaN(p[k])) ? p[k] : null;
+          const newV = (typeof proposedValues[idx][k] === "number" && !isNaN(proposedValues[idx][k])) ? proposedValues[idx][k] : null;
+          if (oldV !== newV) changed++;
+        });
       });
-      renderAll();
-      bannerEl.innerHTML = "✅ Zapisano ręcznie zaktualizowane średnie agregatorów i przeliczono prognozę.";
-    };
+      return changed;
+    }
+
+    function renderDiffTable() {
+      const changedCount = countChanges();
+      const rowsHtml = dataset.map((p, idx) => {
+        const cellsHtml = keys.map(k => {
+          const oldV = (typeof p[k] === "number" && !isNaN(p[k])) ? p[k] : null;
+          const newV = (typeof proposedValues[idx][k] === "number" && !isNaN(proposedValues[idx][k])) ? proposedValues[idx][k] : null;
+          const isChanged = oldV !== newV;
+
+          const borderStyle = isChanged
+            ? "2px solid #fbbf24; background: rgba(251, 191, 36, 0.16); color: #fef08a; font-weight: 800;"
+            : "1px solid rgba(148, 163, 184, 0.25); background: #1e293b; color: #cbd5e1; font-weight: 500;";
+
+          const diffHint = isChanged
+            ? `<div style="font-size:0.62rem; color:#fbbf24; margin-top:2px; white-space:nowrap;">${oldV !== null ? oldV.toFixed(1) : 'brak'} → <strong>${newV !== null ? newV.toFixed(1) : 'brak'}</strong></div>`
+            : `<div style="font-size:0.60rem; color:#64748b; margin-top:2px;">bez zmian</div>`;
+
+          return `
+            <div>
+              <input type="number" step="0.1" data-idx="${idx}" data-key="${k}" value="${newV ?? ''}" placeholder="—"
+                style="width:100%; border:${borderStyle}; border-radius:6px; padding:4px 5px; font-size:0.75rem;" />
+              ${diffHint}
+            </div>
+          `;
+        }).join("");
+
+        const rowChanged = keys.some(k => {
+          const oldV = (typeof p[k] === "number" && !isNaN(p[k])) ? p[k] : null;
+          const newV = (typeof proposedValues[idx][k] === "number" && !isNaN(proposedValues[idx][k])) ? proposedValues[idx][k] : null;
+          return oldV !== newV;
+        });
+
+        return `
+          <div style="display:grid; grid-template-columns: 64px 1fr 1fr 1fr; gap:5px; align-items:start; margin-top:6px; padding:4px; border-radius:7px; ${rowChanged ? 'background: rgba(251, 191, 36, 0.07);' : ''}">
+            <div style="padding-top:4px;">
+              <strong style="font-size:0.74rem; color:${rowChanged ? '#fbbf24' : '#f8fafc'};">${p.name}</strong>
+              ${rowChanged ? '<div style="font-size:0.58rem; color:#fbbf24; font-weight:700;">ZMIANA</div>' : ''}
+            </div>
+            ${cellsHtml}
+          </div>
+        `;
+      }).join("");
+
+      bannerEl.innerHTML = `
+        <div>${headerMessage}</div>
+        <div style="margin-top:6px; font-size:0.72rem; color:#e2e8f0;">
+          Wykryto różnic względem zapisanego stanu: <strong style="color:${changedCount > 0 ? '#fbbf24' : '#94a3b8'};">${changedCount}</strong>
+          (wyróżnione <span style="color:#fbbf24; font-weight:700;">żółtą ramką</span>).
+        </div>
+        <div style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(148,163,184,0.2);">
+          <div style="display:grid; grid-template-columns: 64px 1fr 1fr 1fr; gap:5px; font-size:0.68rem; color:#94a3b8; font-weight:700;">
+            <span>Partia</span><span>ewybory.eu</span><span>Atlas Polit.</span><span>PolitPro</span>
+          </div>
+          ${rowsHtml}
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:10px;">
+            <button id="acceptAggChangesBtn" style="background:#14b8a6; color:#042f2e; font-weight:800; border:none; border-radius:8px; padding:8px; font-size:0.76rem; cursor:pointer;">
+              ✅ Akceptuj zmiany
+            </button>
+            <button id="rejectAggChangesBtn" style="background:#334155; color:#f8fafc; font-weight:700; border:1px solid rgba(148,163,184,0.35); border-radius:8px; padding:8px; font-size:0.76rem; cursor:pointer;">
+              ✖️ Odrzuć zmiany
+            </button>
+          </div>
+        </div>
+      `;
+
+      // Aktualizacja wyróżnienia na żywo przy ręcznej zmianie w polu
+      bannerEl.querySelectorAll("input[data-idx]").forEach(inp => {
+        inp.addEventListener("change", () => {
+          const i = parseInt(inp.dataset.idx, 10);
+          const k = inp.dataset.key;
+          const v = parseFloat(inp.value);
+          proposedValues[i][k] = (!isNaN(v) && v > 0) ? parseFloat(v.toFixed(2)) : null;
+          renderDiffTable();
+        });
+      });
+
+      document.getElementById("acceptAggChangesBtn").onclick = () => {
+        bannerEl.querySelectorAll("input[data-idx]").forEach(inp => {
+          const i = parseInt(inp.dataset.idx, 10);
+          const k = inp.dataset.key;
+          const v = parseFloat(inp.value);
+          dataset[i][k] = (!isNaN(v) && v > 0) ? parseFloat(v.toFixed(2)) : null;
+        });
+        renderAll();
+        const nowStr = new Date().toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
+        bannerEl.innerHTML = `✅ Zaakceptowano i zapamiętano zmiany (${nowStr}). Wykresy i mandaty zostały przeliczone.`;
+      };
+
+      document.getElementById("rejectAggChangesBtn").onclick = () => {
+        bannerEl.innerHTML = `✖️ Odrzucono pobrane zmiany — zachowano dotychczasowy zapisany stan.`;
+      };
+    }
+
+    renderDiffTable();
   }
 
   async function syncAggregatorsFromWeb() {
@@ -1023,7 +1133,7 @@
     btn.disabled = true;
     btn.textContent = "⏳ Pobieranie...";
     banner.classList.add("visible");
-    banner.innerHTML = "Pobieranie średnich przez bramki CORS (Jina Reader / CodeTabs / AllOrigins): <strong>ewybory.eu</strong>, <strong>Atlas Polityczny</strong>, <strong>PolitPro</strong>...";
+    banner.innerHTML = "Pobieranie danych ze stron: <strong>ewybory.eu</strong>, <strong>Atlas Polityczny</strong>, <strong>PolitPro</strong>...";
 
     const partyPatterns = {
       KO:     [/Koalicja Obywatelska[^0-9]{0,45}(\d{1,2}[.,]\d{1,2})\s*%/i, /\bKO\b[^0-9]{0,30}(\d{1,2}[.,]\d{1,2})\s*%/i],
@@ -1043,6 +1153,13 @@
       { key: "ppAvg", name: "PolitPro",          url: "https://politpro.eu/pl/polska" }
     ];
 
+    // Kopia bieżącego stanu jako baza propozycji (zmieniamy tylko odczytane pola)
+    const proposed = dataset.map(p => ({
+      ewAvg: p.ewAvg,
+      apAvg: p.apAvg,
+      ppAvg: p.ppAvg
+    }));
+
     let updatedSources = [];
     let failedSources = [];
 
@@ -1055,9 +1172,9 @@
       const parsed = extractPartyPercentages(content, partyPatterns);
       const count = Object.keys(parsed).length;
       if (count >= 3) {
-        dataset.forEach(p => {
+        dataset.forEach((p, idx) => {
           if (typeof parsed[p.name] === "number") {
-            p[src.key] = parsed[p.name];
+            proposed[idx][src.key] = parseFloat(parsed[p.name].toFixed(2));
           }
         });
         updatedSources.push(`${src.name} (${count} partii)`);
@@ -1066,19 +1183,18 @@
       }
     }
 
-    renderAll();
     btn.disabled = false;
     btn.textContent = "🔄 Aktualizuj";
 
-    const nowStr = new Date().toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
+    let headerMsg = "";
     if (updatedSources.length > 0) {
-      banner.innerHTML = `✅ Zaktualizowano (${nowStr}): <strong>${updatedSources.join(", ")}</strong>.` +
-        (failedSources.length > 0 ? ` Nie pobrano: ${failedSources.join(", ")} (możesz uzupełnić poniżej).` : "");
-      if (failedSources.length > 0) openManualEditPanel(banner);
+      headerMsg = `📡 Odczytano dane ze źródeł: <strong>${updatedSources.join(", ")}</strong>.` +
+        (failedSources.length > 0 ? ` Brak odpowiedzi z: ${failedSources.join(", ")}.` : "");
     } else {
-      banner.innerHTML = `⚠️ Przeglądarka działa w trybie bez dostępu do zewnętrznych proxy (np. offline/sandbox). Możesz wpisać lub skorygować aktualne średnie bezpośrednio poniżej:`;
-      openManualEditPanel(banner);
+      headerMsg = `⚠️ Brak połączenia z zewnętrznymi serwerami w tym środowisku. Poniżej możesz porównać i zmienić wartości ręcznie:`;
     }
+
+    openReviewChangesPanel(banner, proposed, headerMsg);
   }
 
   document.getElementById("syncWebBtn").addEventListener("click", syncAggregatorsFromWeb);
@@ -1159,6 +1275,7 @@
         if (parsed.length > 0) {
           dataset = parsed;
           lastMonthIdx = maxCol - 2;
+          autoNear5Applied = false;
           renderAll();
         }
       } catch (err) {
@@ -1170,7 +1287,9 @@
 
   document.getElementById("autoMode").addEventListener("change", renderAll);
   document.getElementById("phiSlider").addEventListener("input", renderAll);
-  
+
+  // Przy starcie wczytaj zapamiętany stan z localStorage (jeśli istnieje)
+  loadSavedState();
   renderAll();
 </script>
 </body>
