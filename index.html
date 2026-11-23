@@ -490,10 +490,8 @@
   </section>
 
 <script>
-  // Wersja wbudowanych danych — zmiana tego identyfikatora przy aktualizacji pliku na GitHubie
-  // automatycznie odświeży bazę na telefonie zamiast trzymać przestarzały cache z localStorage.
-  const BUNDLED_DATA_VERSION = "2026-11-v11";
-  const STORAGE_KEY = "prognoza_sejm_2027_state_v11";
+  const BUNDLED_DATA_VERSION = "2026-11-v12";
+  const STORAGE_KEY = "prognoza_sejm_2027_state_v12";
 
   // Konfiguracja PWA (Manifest + Ikona SVG + Service Worker dla trybu pełnoekranowego i offline)
   (function initPwa() {
@@ -598,7 +596,6 @@
   // Stały wykładnik D'Hondta dla 41 okręgów (1,15)
   const DHONDT_EXP = 1.15;
 
-  // Wbudowane dane bazowe (w tym uzupełnione średnie ewybory.eu dla wszystkich partii)
   const DEFAULT_DATASET = [
     { name: "KO",     bloc: "Demokratyczny", rawSeries: [31.30, 31.30, 31.20, 31.20, 31.20, 31.20, 31.20, 31.20, 31.20, 31.30, 31.30, 31.40, 31.50], ewAvg: 31.60, apAvg: 32.40, ppAvg: 32.60, visible: true },
     { name: "PIS",    bloc: "Prawica",       rawSeries: [27.40, 27.00, 26.50, 26.00, 25.40, 24.70, 24.00, 23.20, 22.30, 21.40, 20.30, 19.20, 18.00], ewAvg: 20.20, apAvg: 21.90, ppAvg: 22.20, visible: true },
@@ -616,7 +613,7 @@
   }
 
   let dataset = cloneDefaultDataset();
-  let lastMonthIdx = 12; // indeks 12 = lis.26 (0..24)
+  let lastMonthIdx = 12;
   let chartInstance = null;
 
   function getAutoPhi(h) {
@@ -625,7 +622,6 @@
     return 0.75;
   }
 
-  // Wtyczka rysująca lekką mgiełkę poniżej progu 5% na wykresie
   const belowThresholdFogPlugin = {
     id: "belowThresholdFog",
     beforeDatasetsDraw(chart) {
@@ -651,7 +647,6 @@
     const slider = document.getElementById("phiSlider");
     slider.disabled = isAuto;
 
-    // Ustal aktualny indeks najnowszego miesiąca z danych wszystkich partii
     let maxValidIdx = 0;
     dataset.forEach(p => {
       p.rawSeries.forEach((v, idx) => {
@@ -679,7 +674,6 @@
       const partyLastIdx = lastObj.idx;
       const h = Math.max(0, 24 - partyLastIdx);
 
-      // Ważony trend z ostatnich 4 kroków miesięcznych: [0.45, 0.25, 0.18, 0.12]
       const slopeWeights = [0.45, 0.25, 0.18, 0.12];
       const stepDiffs = [];
       for (let m = validPoints.length - 1; m >= 1 && stepDiffs.length < 4; m--) {
@@ -696,14 +690,12 @@
         weightedTrend = stepDiffs.reduce((acc, d, i) => acc + d * (usedW[i] / sumW), 0);
       }
 
-      // Średnia z 3 agregatorów (ewybory.eu, Atlas Polityczny, PolitPro)
       const srcVals = [p.ewAvg, p.apAvg, p.ppAvg].filter(v => typeof v === "number" && !isNaN(v));
       const aggAvg = srcVals.length > 0 ? (srcVals.reduce((a, b) => a + b, 0) / srcVals.length) : null;
       const hasAvg = (typeof aggAvg === "number" && !isNaN(aggAvg));
       const diffVal = hasAvg ? (aggAvg - last) : 0;
       const diffAbs = Math.abs(diffVal);
 
-      // Spójna kotwica i trajektoria (punkt startowy i nachylenie 1:1 między wykresem a wynikiem końcowym)
       const wAnchor = hasAvg ? Math.min(0.35, 0.15 + 0.03 * diffAbs) : 0;
       const startBase = hasAvg ? (last + 0.35 * wAnchor * diffVal) : last;
       const multH = Math.max(0.01, phi * (1 - Math.pow(phi, Math.max(1, h))) / (1 - phi));
@@ -752,7 +744,6 @@
       };
     });
 
-    // Podział 460 mandatów metodą D'Hondta (próg 5%, korekta okręgowa 1,15)
     let quotients = [];
     computed.forEach((p, idx) => {
       if (p.forecast >= 5.0) {
@@ -780,7 +771,7 @@
         phiSlider: parseFloat(document.getElementById("phiSlider").value)
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stateObj));
-    } catch (e) { /* brak dostępu do localStorage */ }
+    } catch (e) {}
   }
 
   function loadSavedState() {
@@ -788,8 +779,6 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return false;
       const st = JSON.parse(raw);
-      // Jeśli wgrano nową wersję pliku na GitHubie (inny BUNDLED_DATA_VERSION),
-      // nadpisz przestarzałą pamięć telefonu nową bazą wbudowaną w HTML.
       if (!st || st.version !== BUNDLED_DATA_VERSION) {
         localStorage.removeItem(STORAGE_KEY);
         return false;
@@ -801,7 +790,7 @@
         if (typeof st.phiSlider === "number") document.getElementById("phiSlider").value = st.phiSlider;
         return true;
       }
-    } catch (e) { /* uszkodzony stan */ }
+    } catch (e) {}
     return false;
   }
 
@@ -825,7 +814,6 @@
     document.getElementById("dataStatus").textContent =
       `Baza: ${lastLbl} → cel: lis.27 (h=${hMain}) • ${isAuto ? 'AUTO ' : ''}φ=${phi.toFixed(2)}`;
 
-    // Pasek poziomy głównego ekranu z mandatami dla partii wchodzących do Sejmu
     const barEl = document.getElementById("partySeatsBar");
     barEl.innerHTML = '<div class="majority-line" title="Większość 231"></div>';
 
@@ -852,7 +840,6 @@
       barEl.appendChild(seg);
     });
 
-    // Sumy bloków
     let demSeats = 0, rightSeats = 0, demPct = 0, rightPct = 0;
     sorted.forEach(p => {
       if (p.bloc.toLowerCase().includes("dem")) {
@@ -872,7 +859,6 @@
     document.getElementById("rightSeats").textContent = rightSeats;
     document.getElementById("rightSub").textContent = `${rightPct.toFixed(1)}% poparcia (${rightShare.toFixed(1)}% Sejmu)`;
 
-    // Lista partii
     const listEl = document.getElementById("partyList");
     listEl.innerHTML = "";
     const maxPct = Math.max(...sorted.map(p => p.forecast), 35);
@@ -1081,13 +1067,359 @@
   }
 
   // =========================================================================
-  // 1. POBIERANIE I PORÓWNYWANIE ŚREDNICH Z AGREGATORÓW (POPRAWIONE URL + PARSER BEZ %)
+  // 1. POBIERANIE I PARSOWANIE DANYCH:
+  //    - PolitPro: tabela "Trend wyborczy przed Wybory parlamentarne w Polska" (Ważona średnia wszystkich instytutów)
+  //      z mapowaniem nazw na skróty partii (KO, PIS, KONF, KPP, LEWICA, R+, PSL, RAZEM, PL2050)
+  //    - ewybory.eu: sondaże z ostatnich 30 dni z tabeli (liczona mediana odporna na skrajne odczyty)
   // =========================================================================
   const AGGREGATOR_SOURCES = [
-    { key: "ewAvg", name: "ewybory.eu",        url: "https://ewybory.eu/sondaze/polska/" },
-    { key: "apAvg", name: "Atlas Polityczny",  url: "https://atlaspolityczny.pl/sondaze/partie" },
-    { key: "ppAvg", name: "PolitPro",          url: "https://politpro.eu/pl/polska/wybory-parlamentarne" }
+    { key: "ewAvg", name: "ewybory.eu (mediana 30d)", url: "https://ewybory.eu/sondaze/polska/" },
+    { key: "apAvg", name: "Atlas Polityczny",         url: "https://atlaspolityczny.pl/sondaze/partie" },
+    { key: "ppAvg", name: "PolitPro (Trend)",         url: "https://politpro.eu/pl/polska/wybory-parlamentarne" }
   ];
+
+  // Mapowanie wariantów nazw i skrótów na kody partii w modelu
+  const PARTY_ALIASES = {
+    KO: [
+      "koalicja obywatelska",
+      "ko",
+      "platforma obywatelska",
+      "po"
+    ],
+    PIS: [
+      "prawo i sprawiedliwość",
+      "prawo i sprawiedliwosc",
+      "pis",
+      "zjednoczona prawica",
+      "zp"
+    ],
+    KONF: [
+      "konfederacja wolność i niepodległość",
+      "konfederacja wolnosc i niepodleglosc",
+      "konfederacja",
+      "kon"
+    ],
+    KPP: [
+      "konfederacja korony polskiej",
+      "korona polska",
+      "kkp",
+      "kpp"
+    ],
+    LEWICA: [
+      "nowa lewica",
+      "lewica",
+      "sld",
+      "wiosna"
+    ],
+    "R+": [
+      "rozwój plus",
+      "rozwoj plus",
+      "r+"
+    ],
+    PSL: [
+      "polskie stronnictwo ludowe",
+      "psl",
+      "trzecia droga"
+    ],
+    RAZEM: [
+      "partia razem",
+      "razem"
+    ],
+    PL2050: [
+      "polska 2050",
+      "pl2050",
+      "polska 2050 szymona hołowni",
+      "polska 2050 szymona holowni"
+    ]
+  };
+
+  function normalizeLabel(str) {
+    return (str || "")
+      .toLowerCase()
+      .replace(/['’`]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function matchPartyCodeByLabel(rawLabel) {
+    const clean = normalizeLabel(rawLabel);
+    if (!clean) return null;
+
+    // Najpierw sprawdź dokładne dopasowanie aliasu (żeby "kon" nie myliło się z "konfederacja korony polskiej")
+    // Kolejność kluczowa: najpierw bardziej specyficzne nazwy (KPP, PL2050, R+, RAZEM, PSL, LEWICA, KONF, PIS, KO)
+    const priorityOrder = ["KPP", "PL2050", "R+", "RAZEM", "PSL", "LEWICA", "KONF", "PIS", "KO"];
+    for (const code of priorityOrder) {
+      const aliases = PARTY_ALIASES[code];
+      for (const alias of aliases) {
+        if (clean === alias) return code;
+        // Dopasowanie słowem/frazą z zachowaniem granic słowa
+        const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const wordRx = new RegExp(`(?:^|[^a-z0-9ąćęłńóśźż+])${escaped}(?:$|[^a-z0-9ąćęłńóśźż+])`, "i");
+        if (wordRx.test(clean)) return code;
+      }
+    }
+    return null;
+  }
+
+  function computeMedian(arr) {
+    if (!arr || arr.length === 0) return null;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    if (sorted.length % 2 === 1) {
+      return parseFloat(sorted[mid].toFixed(2));
+    }
+    return parseFloat(((sorted[mid - 1] + sorted[mid]) / 2).toFixed(2));
+  }
+
+  function parsePolishOrIsoDate(dateStr) {
+    if (!dateStr) return null;
+    // Obsługa formatów: dd.mm.yyyy, dd-mm-yyyy, yyyy-mm-dd, dd.mm.yy, dd mmm yyyy
+    let m = dateStr.match(/\b(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})\b/);
+    if (m) {
+      const d = new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+      if (!isNaN(d.getTime())) return d;
+    }
+    m = dateStr.match(/\b(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{2})\b/);
+    if (m) {
+      const yr = 2000 + parseInt(m[3], 10);
+      const d = new Date(yr, parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+      if (!isNaN(d.getTime())) return d;
+    }
+    m = dateStr.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+    if (m) {
+      const d = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+      if (!isNaN(d.getTime())) return d;
+    }
+    return null;
+  }
+
+  // Parser dedykowany dla PolitPro: tabela / sekcja "Trend wyborczy przed Wybory parlamentarne w Polska"
+  function parsePolitProTrend(rawContent) {
+    const result = {};
+    if (!rawContent) return result;
+
+    let scopeText = rawContent;
+    if (rawContent.includes("<html") || rawContent.includes("<body") || rawContent.includes("<div")) {
+      const doc = new DOMParser().parseFromString(rawContent, "text/html");
+
+      // Spróbuj zlokalizować sekcję lub tabelę związaną z "Trend wyborczy przed Wybory parlamentarne w Polska"
+      const headings = Array.from(doc.querySelectorAll("h1, h2, h3, h4, section, article, table, div"));
+      const trendHeading = headings.find(el =>
+        /Trend wyborczy przed Wybory parlamentarne w Polska/i.test(el.textContent || "") &&
+        el.tagName !== "BODY" && el.tagName !== "HTML"
+      );
+
+      let container = doc.body;
+      if (trendHeading) {
+        container = trendHeading.closest("section, article, table, .trend, [class*='trend']") || trendHeading.parentElement || doc.body;
+      }
+
+      // Przeszukaj wiersze tabel lub elementy zawierające nazwę partii i wartość procentową
+      const rows = Array.from(container.querySelectorAll("tr, .row, [class*='party'], [class*='bar'], li"));
+      rows.forEach(row => {
+        const txt = (row.innerText || row.textContent || "").replace(/\s+/g, " ").trim();
+        if (!txt || txt.length > 220) return;
+
+        // Szukaj pary etykieta + liczba (np. "KO 32,6", "Prawo i Sprawiedliwość 22,2 %", "Kon 13,7", "Rozwój Plus 4,7")
+        const numMatch = txt.match(/(\d{1,2}[.,]\d{1,2})\s*%?/);
+        if (!numMatch) return;
+
+        const val = parseFloat(numMatch[1].replace(",", "."));
+        if (isNaN(val) || val < 0.3 || val > 55.0) return;
+
+        const labelPart = txt.slice(0, numMatch.index).replace(/[:•|+\-–—]+$/g, "").trim();
+        const code = matchPartyCodeByLabel(labelPart) || matchPartyCodeByLabel(txt);
+        if (code && result[code] === undefined) {
+          result[code] = parseFloat(val.toFixed(2));
+        }
+      });
+
+      scopeText = (container.innerText || container.textContent || "").replace(/\s+/g, " ");
+    } else {
+      scopeText = rawContent.replace(/\s+/g, " ");
+    }
+
+    // Jeśli fragment tekstowy zawiera wyraźnie sekcję "Trend wyborczy", zawęź do niej
+    const markerIdx = scopeText.search(/Trend wyborczy przed Wybory parlamentarne w Polska/i);
+    const searchSlice = markerIdx >= 0 ? scopeText.slice(markerIdx, markerIdx + 4500) : scopeText;
+
+    // Wzorce dla poszczególnych partii (w tym skróty PolitPro: KO, PiS, Kon, KKP, Lewica, Rozwój Plus, Razem, PSL, PL2050)
+    const directPatterns = {
+      KO:     [/\bKoalicja Obywatelska\b[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})/i, /\bKO\b[^0-9]{0,15}(\d{1,2}[.,]\d{1,2})/i],
+      PIS:    [/\bPrawo i Sprawiedliwość\b[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})/i, /\bPiS\b[^0-9]{0,15}(\d{1,2}[.,]\d{1,2})/i],
+      KONF:   [/\bKonfederacja\b(?!\s+Korony)[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})/i, /\bKon\b[^0-9]{0,15}(\d{1,2}[.,]\d{1,2})/i],
+      KPP:    [/\bKonfederacja Korony Polskiej\b[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})/i, /\bKKP\b[^0-9]{0,15}(\d{1,2}[.,]\d{1,2})/i],
+      LEWICA: [/\bNowa Lewica\b[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})/i, /\bLewica\b[^0-9]{0,15}(\d{1,2}[.,]\d{1,2})/i],
+      "R+":   [/\bRozwój Plus\b[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})/i, /\bR\+\b[^0-9]{0,15}(\d{1,2}[.,]\d{1,2})/i],
+      PSL:    [/\bPolskie Stronnictwo Ludowe\b[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})/i, /\bPSL\b[^0-9]{0,15}(\d{1,2}[.,]\d{1,2})/i],
+      RAZEM:  [/\bPartia Razem\b[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})/i, /\bRazem\b[^0-9]{0,15}(\d{1,2}[.,]\d{1,2})/i],
+      PL2050: [/\bPolska 2050\b[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})/i, /\bPL2050\b[^0-9]{0,15}(\d{1,2}[.,]\d{1,2})/i]
+    };
+
+    for (const [code, rxList] of Object.entries(directPatterns)) {
+      if (result[code] !== undefined) continue;
+      for (const rx of rxList) {
+        const m = searchSlice.match(rx);
+        if (m && m[1]) {
+          const val = parseFloat(m[1].replace(",", "."));
+          if (!isNaN(val) && val >= 0.3 && val <= 55.0) {
+            result[code] = parseFloat(val.toFixed(2));
+            break;
+          }
+        }
+      }
+    }
+
+    return result;
+  }
+
+  // Parser dedykowany dla ewybory.eu: wyciąga sondaże z tabeli z ostatnich 30 dni i liczy MEDIANĘ
+  function parseEwyboryLast30DaysMedian(rawContent) {
+    const result = {};
+    if (!rawContent) return result;
+
+    const nowMs = Date.now();
+    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+    const cutoffMs = nowMs - thirtyDaysMs;
+
+    const partySamples = {
+      KO: [], PIS: [], KONF: [], KPP: [], LEWICA: [], "R+": [], PSL: [], RAZEM: [], PL2050: []
+    };
+
+    if (rawContent.includes("<html") || rawContent.includes("<body") || rawContent.includes("<div")) {
+      const doc = new DOMParser().parseFromString(rawContent, "text/html");
+      const tables = Array.from(doc.querySelectorAll("table"));
+
+      tables.forEach(table => {
+        const headers = Array.from(table.querySelectorAll("thead th, tr:first-child th, tr:first-child td"))
+          .map(th => (th.innerText || th.textContent || "").trim());
+
+        // Mapuj kolumny na kody partii
+        const colPartyMap = {};
+        let dateColIdx = -1;
+
+        headers.forEach((hText, idx) => {
+          const normH = normalizeLabel(hText);
+          if (!normH) return;
+          if (dateColIdx === -1 && (normH.includes("data") || normH.includes("termin") || normH.includes("kiedy"))) {
+            dateColIdx = idx;
+          }
+          const code = matchPartyCodeByLabel(hText);
+          if (code && colPartyMap[idx] === undefined) {
+            colPartyMap[idx] = code;
+          }
+        });
+
+        // Jeśli w nagłówkach znaleziono co najmniej 2 partie, czytaj wiersze sondaży
+        if (Object.keys(colPartyMap).length >= 2) {
+          const bodyRows = Array.from(table.querySelectorAll("tbody tr, tr"));
+          bodyRows.forEach(tr => {
+            const cells = Array.from(tr.querySelectorAll("td, th"));
+            if (cells.length < 3) return;
+            const rowText = (tr.innerText || tr.textContent || "").replace(/\s+/g, " ").trim();
+
+            // Sprawdź datę sondażu w wierszu (jeśli jest w kolumnie daty lub w treści wiersza)
+            const dateCandidateStr = dateColIdx >= 0 && cells[dateColIdx]
+              ? (cells[dateColIdx].innerText || cells[dateColIdx].textContent || "")
+              : rowText;
+            const parsedDate = parsePolishOrIsoDate(dateCandidateStr);
+
+            // Jeśli data jest obecna i starsza niż 30 dni — pomiń ten sondaż
+            if (parsedDate && parsedDate.getTime() < cutoffMs) {
+              return;
+            }
+
+            cells.forEach((cell, cIdx) => {
+              const pCode = colPartyMap[cIdx];
+              if (!pCode) return;
+              const cTxt = (cell.innerText || cell.textContent || "").replace(",", ".").trim();
+              const numM = cTxt.match(/(\d{1,2}(?:\.\d{1,2})?)/);
+              if (numM) {
+                const v = parseFloat(numM[1]);
+                if (!isNaN(v) && v >= 0.3 && v <= 55.0) {
+                  partySamples[pCode].push(v);
+                }
+              }
+            });
+          });
+        }
+      });
+    }
+
+    // Fallback tekstowy / markdown (np. r.jina.ai) jeśli tabele HTML nie zwróciły próbek
+    let totalSamples = Object.values(partySamples).reduce((acc, arr) => acc + arr.length, 0);
+    if (totalSamples === 0) {
+      const cleanLines = rawContent
+        .replace(/<[^>]+>/g, " ")
+        .split(/\r?\n/)
+        .map(l => l.replace(/\s+/g, " ").trim())
+        .filter(Boolean);
+
+      cleanLines.forEach(line => {
+        const dt = parsePolishOrIsoDate(line);
+        if (dt && dt.getTime() < cutoffMs) return;
+
+        for (const [pCode, aliases] of Object.entries(PARTY_ALIASES)) {
+          const hit = aliases.some(al => {
+            const esc = al.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            return new RegExp(`(?:^|[^a-z0-9ąćęłńóśźż+])${esc}(?:$|[^a-z0-9ąćęłńóśźż+])`, "i").test(line);
+          });
+          if (hit) {
+            const nums = line.match(/\b(\d{1,2}[.,]\d{1,2})\b/g);
+            if (nums && nums.length > 0) {
+              const v = parseFloat(nums[0].replace(",", "."));
+              if (!isNaN(v) && v >= 0.3 && v <= 55.0) {
+                partySamples[pCode].push(v);
+              }
+            }
+          }
+        }
+      });
+    }
+
+    for (const [code, samples] of Object.entries(partySamples)) {
+      const med = computeMedian(samples);
+      if (med !== null) {
+        result[code] = med;
+      }
+    }
+
+    return result;
+  }
+
+  function extractPartyPercentages(rawContent, patternsMap, sourceKey) {
+    if (sourceKey === "ppAvg") {
+      return parsePolitProTrend(rawContent);
+    }
+    if (sourceKey === "ewAvg") {
+      return parseEwyboryLast30DaysMedian(rawContent);
+    }
+
+    let cleanText = rawContent;
+    if (rawContent.includes("<html") || rawContent.includes("<body") || rawContent.includes("<div")) {
+      const doc = new DOMParser().parseFromString(rawContent, "text/html");
+      doc.querySelectorAll("td, th, div, span, li, p, tr").forEach(el => {
+        el.insertAdjacentText("afterend", " | ");
+      });
+      cleanText = doc.body ? doc.body.innerText : rawContent;
+    }
+    cleanText = cleanText.replace(/\s+/g, " ");
+
+    const found = {};
+    for (const [partyCode, regexList] of Object.entries(patternsMap)) {
+      for (const rx of regexList) {
+        const m = cleanText.match(rx);
+        if (m && m[1]) {
+          const val = parseFloat(m[1].replace(",", "."));
+          if (!isNaN(val) && val >= 0.3 && val <= 55.0) {
+            found[partyCode] = parseFloat(val.toFixed(2));
+            break;
+          }
+        }
+      }
+    }
+    return found;
+  }
 
   async function fetchTextSmart(targetUrl) {
     const cleanNoProto = targetUrl.replace(/^https?:\/\//, "");
@@ -1098,10 +1430,9 @@
       { url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`, jsonWrap: false }
     ];
 
-    // Równoległe odpytanie z krótkim timeoutem (4.8 s) — nie blokuje telefonu
     const attempts = endpoints.map(async ep => {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 4800);
+      const timer = setTimeout(() => controller.abort(), 5000);
       try {
         const resp = await fetch(ep.url, { cache: "no-store", signal: controller.signal });
         clearTimeout(timer);
@@ -1125,34 +1456,6 @@
     } catch (e) {
       return null;
     }
-  }
-
-  function extractPartyPercentages(rawContent, patternsMap) {
-    let cleanText = rawContent;
-    if (rawContent.includes("<html") || rawContent.includes("<body") || rawContent.includes("<div")) {
-      const doc = new DOMParser().parseFromString(rawContent, "text/html");
-      // Zachowaj separatory między komórkami tabeli (np. ewybory.eu bez znaku %)
-      doc.querySelectorAll("td, th, div, span, li, p, tr").forEach(el => {
-        el.insertAdjacentText("afterend", " | ");
-      });
-      cleanText = doc.body ? doc.body.innerText : rawContent;
-    }
-    cleanText = cleanText.replace(/\s+/g, " ");
-
-    const found = {};
-    for (const [partyCode, regexList] of Object.entries(patternsMap)) {
-      for (const rx of regexList) {
-        const m = cleanText.match(rx);
-        if (m && m[1]) {
-          const val = parseFloat(m[1].replace(",", "."));
-          if (!isNaN(val) && val >= 0.3 && val <= 55.0) {
-            found[partyCode] = parseFloat(val.toFixed(2));
-            break;
-          }
-        }
-      }
-    }
-    return found;
   }
 
   function openReviewChangesPanel(bannerEl, proposedValues, headerMessage) {
@@ -1225,7 +1528,7 @@
         </div>
         <div style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(148,163,184,0.2);">
           <div style="display:grid; grid-template-columns: 64px 1fr 1fr 1fr; gap:5px; font-size:0.68rem; color:#94a3b8; font-weight:700;">
-            <span>Partia</span><span>ewybory.eu</span><span>Atlas Polit.</span><span>PolitPro</span>
+            <span>Partia</span><span>ewybory (30d)</span><span>Atlas Polit.</span><span>PolitPro</span>
           </div>
           ${rowsHtml}
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:10px;">
@@ -1275,44 +1578,18 @@
     btn.disabled = true;
     btn.textContent = "⏳ Pobieranie...";
     banner.classList.add("visible");
-    banner.innerHTML = "Sprawdzanie notowań na stronach: <strong>ewybory.eu</strong>, <strong>Atlas Polityczny</strong>, <strong>PolitPro</strong>...";
+    banner.innerHTML = "Sprawdzanie: <strong>ewybory.eu (mediana z 30 dni)</strong>, <strong>Atlas Polityczny</strong> oraz <strong>PolitPro (Trend wyborczy)</strong>...";
 
-    // Wzorce dopasowujące liczby ZARÓWNO ze znakiem %, jak i bez znaku % (np. tabele na ewybory.eu)
     const partyPatterns = {
-      KO:     [
-        /Koalicja Obywatelska[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i,
-        /KO[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i
-      ],
-      PIS:    [
-        /Prawo i Sprawiedliwość[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i,
-        /PiS[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i
-      ],
-      KONF:   [
-        /Konfederacja(?!\s+Korony)[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i
-      ],
-      KPP:    [
-        /Konfederacja Korony Polskiej[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i,
-        /KKP[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i
-      ],
-      LEWICA: [
-        /Nowa Lewica[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i,
-        /Lewica[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i
-      ],
-      "R+":   [
-        /Rozwój Plus[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i,
-        /R\+[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i
-      ],
-      PSL:    [
-        /Polskie Stronnictwo Ludowe[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i,
-        /PSL[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i
-      ],
-      RAZEM:  [
-        /Partia Razem[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i,
-        /Razem[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i
-      ],
-      PL2050: [
-        /Polska 2050[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i
-      ]
+      KO:     [/Koalicja Obywatelska[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i, / KO [^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i],
+      PIS:    [/Prawo i Sprawiedliwość[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i, / PiS [^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i],
+      KONF:   [/Konfederacja(?!\s+Korony)[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i, / Kon [^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i],
+      KPP:    [/Konfederacja Korony Polskiej[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i, / KKP [^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i],
+      LEWICA: [/Nowa Lewica[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i, / Lewica [^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i],
+      "R+":   [/Rozwój Plus[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i, / R\+ [^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i],
+      PSL:    [/Polskie Stronnictwo Ludowe[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i, / PSL [^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i],
+      RAZEM:  [/Partia Razem[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i, / Razem [^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i],
+      PL2050: [/Polska 2050[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i, / PL2050 [^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i]
     };
 
     const proposed = dataset.map(p => ({
@@ -1330,7 +1607,7 @@
         failedSources.push(src.name);
         continue;
       }
-      const parsed = extractPartyPercentages(content, partyPatterns);
+      const parsed = extractPartyPercentages(content, partyPatterns, src.key);
       const count = Object.keys(parsed).length;
       if (count >= 3) {
         dataset.forEach((p, idx) => {
@@ -1350,29 +1627,25 @@
     let headerMsg = "";
     if (updatedSources.length > 0) {
       headerMsg = `📡 Odczytano automatycznie: <strong>${updatedSources.join(", ")}</strong>.` +
-        (failedSources.length > 0 ? ` Nie udało się pobrać z: ${failedSources.join(", ")} (możesz podejrzeć linkiem i wpisać poniżej).` : "");
+        (failedSources.length > 0 ? ` Bez odczytu z: ${failedSources.join(", ")} (możesz podejrzeć linkiem i wpisać poniżej).` : "");
     } else {
-      headerMsg = `ℹ️ Automatyczny odczyt zablokowany przez zabezpieczenia stron lub brak sieci. Otwórz źródła przyciskami poniżej i wpisz aktualne średnie:`;
+      headerMsg = `ℹ️ Automatyczny odczyt został zablokowany po stronie przeglądarek/źródeł lub brak połączenia. Otwórz linki poniżej i wpisz wartości:`;
     }
 
     openReviewChangesPanel(banner, proposed, headerMsg);
   }
 
   // =========================================================================
-  // 2. PANEL EDYCJI DANYCH REGRESJI I DOPISYWANIA KOLEJNYCH MIESIĘCY (BEZ XLSX)
+  // 2. PANEL EDYCJI DANYCH REGRESJI I DOPISYWANIA KOLEJNYCH MIESIĘCY
   // =========================================================================
   function openRegressionEditor() {
     const banner = document.getElementById("syncBanner");
     banner.classList.add("visible");
 
-    // Domyślnie wybierz najnowszy istniejący miesiąc do edycji
     let selectedMonthIdx = lastMonthIdx;
-
-    // Głęboka kopia robocza szeregów czasowych
     const workingSeries = dataset.map(p => [...p.rawSeries]);
 
     function renderRegEditor() {
-      const nextMonthIdx = Math.min(24, lastMonthIdx + 1);
       const canAddMonth = selectedMonthIdx < 24 && lastMonthIdx < 24;
 
       const optionsHtml = MONTHS_25.map((mName, idx) => {
@@ -1438,7 +1711,6 @@
       if (addBtn) {
         addBtn.onclick = () => {
           selectedMonthIdx = lastMonthIdx + 1;
-          // Wstępnie podpowiedz wartości z poprzedniego miesiąca jako punkt wyjścia
           dataset.forEach((p, idx) => {
             if (workingSeries[idx][selectedMonthIdx] === null || workingSeries[idx][selectedMonthIdx] === undefined) {
               workingSeries[idx][selectedMonthIdx] = workingSeries[idx][lastMonthIdx];
@@ -1489,7 +1761,6 @@
     banner.innerHTML = "↺ Przywrócono wbudowane dane bazowe z wersji " + BUNDLED_DATA_VERSION + ".";
   });
 
-  // Nawigacja zakładek
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
@@ -1505,7 +1776,6 @@
   document.getElementById("autoMode").addEventListener("change", renderAll);
   document.getElementById("phiSlider").addEventListener("input", renderAll);
 
-  // Przy starcie wczytaj zapamiętany stan (jeśli wersja bazy jest aktualna)
   loadSavedState();
   renderAll();
 </script>
