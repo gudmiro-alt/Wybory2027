@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="Sejm 2027" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0f172a" />
-  <title>Prognoza Sejm 2027</title>
+  <title>Sejm 2027</title>
   <link id="pwaManifest" rel="manifest" />
   <link id="pwaAppleIcon" rel="apple-touch-icon" />
   <link id="pwaFavicon" rel="icon" type="image/svg+xml" />
@@ -24,16 +24,15 @@
       --dem-bg: rgba(56, 189, 248, 0.14);
       --right: #f87171;
       --right-bg: rgba(248, 113, 113, 0.14);
-      --warn: #fbbf24;
-      --warn-bg: rgba(251, 191, 36, 0.14);
       --accent: #14b8a6;
       --border: rgba(148, 163, 184, 0.18);
+      --zoom-factor: 1;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     body {
       background: var(--bg);
       color: var(--text);
-      padding: 14px 14px 48px;
+      padding: 14px 14px 44px;
       max-width: 580px;
       margin: 0 auto;
     }
@@ -44,7 +43,7 @@
       gap: 8px;
       margin-bottom: 12px;
     }
-    h1 { font-size: 1.16rem; font-weight: 700; letter-spacing: -0.02em; }
+    h1 { font-size: 1.18rem; font-weight: 700; letter-spacing: -0.02em; }
     .subtitle { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
     .header-actions {
       display: flex;
@@ -75,7 +74,6 @@
       cursor: wait;
     }
 
-    /* Nawigacja zakładek */
     .tabs {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -124,7 +122,6 @@
       align-items: center;
     }
 
-    /* Pasek poziomy dla partii w Sejmie */
     .sejm-bar-wrap {
       position: relative;
       height: 36px;
@@ -165,7 +162,7 @@
       left: 50%;
       top: 0;
       bottom: 0;
-      width: 2px;
+      width: calc(2px / var(--zoom-factor));
       background: #facc15;
       box-shadow: 0 0 6px rgba(250, 204, 21, 0.85);
       z-index: 4;
@@ -228,22 +225,24 @@
     }
     .prog-fill { height: 100%; border-radius: 4px; transition: width 0.35s ease; }
 
-    .auto-toggle {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #0f172a;
-      padding: 9px 11px;
-      border-radius: 10px;
-      margin-bottom: 8px;
-      font-size: 0.8rem;
+    .footer-meta {
+      text-align: center;
+      margin-top: 6px;
+      font-size: 0.70rem;
+      color: var(--muted);
+      line-height: 1.45;
     }
-    .ctrl-box { background: #0f172a; padding: 9px 11px; border-radius: 10px; }
-    .ctrl-lbl { font-size: 0.74rem; color: var(--muted); display: flex; justify-content: space-between; margin-bottom: 5px; }
-    input[type="range"] { width: 100%; accent-color: var(--accent); }
-    .status-note { font-size: 0.72rem; color: var(--muted); text-align: center; margin-top: 8px; line-height: 1.38; }
+    .reset-btn {
+      background: transparent;
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      color: #94a3b8;
+      font-size: 0.68rem;
+      padding: 4px 10px;
+      border-radius: 7px;
+      cursor: pointer;
+      margin-top: 8px;
+    }
 
-    /* Panel aktualizacji / edycji */
     .sync-banner {
       background: #0f172a;
       border: 1px solid rgba(56, 189, 248, 0.3);
@@ -273,7 +272,6 @@
       font-weight: 600;
     }
 
-    /* Zakładka Wykres */
     .filter-chips {
       display: flex;
       flex-wrap: wrap;
@@ -301,7 +299,7 @@
     }
     .chart-box {
       position: relative;
-      height: 335px;
+      height: 340px;
       width: 100%;
     }
     .chart-fallback {
@@ -369,8 +367,8 @@
 
   <header>
     <div>
-      <h1>Prognoza Sejm 2027</h1>
-      <div class="subtitle" id="dataStatus">Baza: lis.26 → cel: lis.27 (h=12) • AUTO φ=0,80</div>
+      <h1>Sejm 2027</h1>
+      <div class="subtitle" id="dataStatus">Baza: lis.26 → cel: lis.27 (h=12) • φ=0,77</div>
     </div>
     <div class="header-actions">
       <button class="action-btn secondary" id="syncWebBtn" title="Pobierz lub wpisz aktualne średnie sondaży">
@@ -384,7 +382,6 @@
 
   <div id="syncBanner" class="sync-banner"></div>
 
-  <!-- Przełącznik podstron -->
   <nav class="tabs">
     <button class="tab-btn active" data-tab="view-mandates">📊 Mandaty i Wyniki</button>
     <button class="tab-btn" data-tab="view-chart">📈 Wykres Trendów</button>
@@ -416,36 +413,15 @@
 
     <div class="card">
       <div class="card-title">
-        <span>Prognoza na listopad 2027</span>
+        <span>Wyniki na listopad 2027</span>
         <span id="totalSupportHeader">Suma: 90,70%</span>
       </div>
       <div id="partyList"></div>
     </div>
 
-    <div class="card">
-      <div class="card-title">
-        <span>Parametry modelu (41 okręgów • D'Hondt)</span>
-      </div>
-      <label class="auto-toggle">
-        <span><strong>AUTO tłumienie φ(h)</strong> (wg liczby mies. do 11/2027)</span>
-        <input type="checkbox" id="autoMode" checked style="width:18px; height:18px; accent-color:#14b8a6;" />
-      </label>
-      <div class="ctrl-box">
-        <div class="ctrl-lbl">
-          <span>Współczynnik tłumienia (φ)</span>
-          <strong id="phiVal">0.80</strong>
-        </div>
-        <input type="range" id="phiSlider" min="0.60" max="0.95" step="0.05" value="0.80" disabled />
-      </div>
-      <div class="status-note">
-        Zachowanie sumy poparcia (bilansowanie zysków i strat między partiami).<br/>
-        D'Hondt osobno w 41 okręgach (460 mandatów; próg 5% od głosów ważnych po odjęciu ~1,6% „innych”; profile regionalne; równa frekwencja; bez mandatu MN).
-      </div>
-      <div style="text-align:center; margin-top:8px;">
-        <button id="resetFactoryBtn" style="background:transparent; border:1px solid rgba(148,163,184,0.28); color:#94a3b8; font-size:0.68rem; padding:4px 9px; border-radius:7px; cursor:pointer;">
-          ↺ Przywróć wbudowane dane bazowe
-        </button>
-      </div>
+    <div class="footer-meta">
+      <div>41 okręgów (460 mandatów, D'Hondt) • próg 5% od głosów ważnych (po odjęciu ~1,6% „innych”) • profile regionalne • zachowanie sumy poparcia.</div>
+      <button id="resetFactoryBtn" class="reset-btn">↺ Przywróć wbudowane dane bazowe</button>
     </div>
   </section>
 
@@ -475,7 +451,7 @@
         </div>
         <div class="legend-item">
           <span class="sym-dash"></span>
-          <span><strong>Linia przerywana:</strong> zbilansowana, wygaszana projekcja trendu</span>
+          <span><strong>Linia przerywana:</strong> zbilansowana, płynnie wygaszana projekcja trendu</span>
         </div>
         <div class="legend-item">
           <span class="sym-diamond"></span>
@@ -483,20 +459,18 @@
         </div>
         <div class="legend-item">
           <span class="sym-target"></span>
-          <span><strong>Punkt docelowy (◉):</strong> prognozowany wynik w listopadzie 2027 r.</span>
+          <span><strong>Punkt docelowy (◉):</strong> wynik w listopadzie 2027 r.</span>
         </div>
       </div>
     </div>
   </section>
 
 <script>
-  const BUNDLED_DATA_VERSION = "2026-11-v13";
-  const STORAGE_KEY = "prognoza_sejm_2027_state_v13";
-
-  // Udział "innych" komitetów odejmowany przy liczeniu głosów ważnych pod próg 5%
+  const BUNDLED_DATA_VERSION = "2026-11-v14";
+  const STORAGE_KEY = "sejm_2027_state_v14";
   const OTHER_PARTIES_SHARE = 1.6;
 
-  // Konfiguracja PWA (Manifest + Ikona SVG + Service Worker dla trybu pełnoekranowego i offline)
+  // Konfiguracja PWA
   (function initPwa() {
     const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
       <rect width="512" height="512" rx="112" fill="#0f172a"/>
@@ -515,9 +489,9 @@
     if (appleEl) appleEl.href = iconDataUrl;
 
     const manifestObj = {
-      name: "Prognoza Sejm 2027",
+      name: "Sejm 2027",
       short_name: "Sejm 2027",
-      description: "Model prognozowania poparcia i podziału 460 mandatów w 41 okręgach metodą D'Hondta na listopad 2027 r.",
+      description: "Model poparcia i podziału 460 mandatów w 41 okręgach metodą D'Hondta na listopad 2027 r.",
       start_url: "./",
       display: "standalone",
       orientation: "portrait",
@@ -560,8 +534,7 @@
         });
       `;
       const swBlob = new Blob([swCode], { type: "application/javascript" });
-      const swUrl = URL.createObjectURL(swBlob);
-      navigator.serviceWorker.register(swUrl).catch(() => {});
+      navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
     }
   })();
 
@@ -596,7 +569,7 @@
     "lip.27", "sie.27", "wrz.27", "paź.27", "lis.27"
   ];
 
-  // 41 okręgów wyborczych do Sejmu (suma mandatów = 460; pominięty mandat MN w Opolu; równa frekwencja)
+  // 41 okręgów wyborczych do Sejmu (suma mandatów = 460; bez mandatu MN w Opolu; równa frekwencja)
   const DISTRICTS_41 = [
     { nr: 1,  name: "Legnica",              seats: 12, reg: "west" },
     { nr: 2,  name: "Wałbrzych",            seats: 8,  reg: "west" },
@@ -641,7 +614,6 @@
     { nr: 41, name: "Szczecin",             seats: 12, reg: "north_west" }
   ];
 
-  // Profile regionalne (mnożniki względem średniej partii w kraju)
   const REGION_PROFILES = {
     KO: {
       metro_capital: 1.26, metro_north: 1.24, metro_west: 1.22, metro_south: 1.18,
@@ -717,8 +689,6 @@
     }
   };
 
-  // Normalizacja wag regionalnych w obrębie każdej partii ważona liczbą mandatów w okręgu,
-  // tak aby średnia krajowa wagi regionalnej wynosiła dokładnie 1,00 (zachowanie sumy w kraju).
   const NORMALIZED_REGION_WEIGHTS = {};
   (function initNormalizedRegionWeights() {
     const totalSeats = DISTRICTS_41.reduce((acc, d) => acc + d.seats, 0);
@@ -750,59 +720,90 @@
   let lastMonthIdx = 12;
   let chartInstance = null;
 
-  function getAutoPhi(h) {
-    if (h > 8) return 0.80;
-    if (h > 4) return 0.85;
-    return 0.75;
+  // Płynna, ciągła i monotoniczna funkcja tłumienia φ(h) bez progów skokowych:
+  // im bliżej terminu wyborów (mniejsze h), tym wyższa trwałość bieżącego impetu (φ → 0,88);
+  // im dłuższy horyzont (większe h), tym mocniejsze wygaszanie trendu (φ → 0,74).
+  function getSmoothPhi(h) {
+    if (h <= 0) return 0.88;
+    return 0.74 + 0.14 * Math.exp(-h / 8.0);
   }
 
-  // Bilansowanie wektora wartości w kroku t tak, aby zachować docelową sumę poparcia targetSum
-  // (to, co jedna partia traci, przechodzi na inne partie z dodatnim przyrostem / przyciąganiem agregatorów).
+  // Aktualny współczynnik powiększenia widoku (pinch-zoom / zoom przeglądarki)
+  function getCurrentZoomScale() {
+    if (window.visualViewport && typeof window.visualViewport.scale === "number" && window.visualViewport.scale > 0) {
+      return Math.max(0.75, Math.min(5.0, window.visualViewport.scale));
+    }
+    return 1.0;
+  }
+
+  function applyZoomResponsiveScaling() {
+    const zoom = getCurrentZoomScale();
+    document.documentElement.style.setProperty("--zoom-factor", zoom.toFixed(3));
+
+    if (!chartInstance) return;
+    const inv = 1 / zoom;
+    const dpr = Math.min(4, (window.devicePixelRatio || 1) * Math.min(2.2, zoom));
+
+    chartInstance.options.devicePixelRatio = dpr;
+    chartInstance.data.datasets.forEach(ds => {
+      if (typeof ds._baseBorderWidth === "number") {
+        ds.borderWidth = Math.max(0.65, ds._baseBorderWidth * inv);
+      }
+      if (typeof ds._basePointRadius === "number" && ds._basePointRadius > 0) {
+        ds.pointRadius = Math.max(1.2, ds._basePointRadius * inv);
+      }
+      if (typeof ds._baseHoverRadius === "number" && ds._baseHoverRadius > 0) {
+        ds.pointHoverRadius = Math.max(2.5, ds._baseHoverRadius * inv);
+      }
+      if (Array.isArray(ds._baseBorderDash)) {
+        ds.borderDash = ds._baseBorderDash.map(seg => Math.max(2, seg * inv));
+      }
+    });
+
+    if (chartInstance.options.scales && chartInstance.options.scales.x && chartInstance.options.scales.x.ticks) {
+      chartInstance.options.scales.x.ticks.font = { size: Math.max(7, Math.round(10 * inv)) };
+    }
+    if (chartInstance.options.scales && chartInstance.options.scales.y && chartInstance.options.scales.y.ticks) {
+      chartInstance.options.scales.y.ticks.font = { size: Math.max(7, Math.round(10 * inv)) };
+    }
+
+    chartInstance.resize();
+    chartInstance.update("none");
+  }
+
   function rebalanceToTargetSum(values, bases, targetSum) {
     const n = values.length;
     const out = values.map(v => Math.max(0, v));
     const currentSum = out.reduce((a, b) => a + b, 0);
-    const diff = targetSum - currentSum; // > 0 gdy łączne poparcie spadło poniżej targetSum
+    const diff = targetSum - currentSum;
 
-    if (Math.abs(diff) < 1e-9) {
-      return out;
-    }
+    if (Math.abs(diff) < 1e-9) return out;
 
     if (diff > 0) {
-      // Kto powinien przejąć utracone punkty: partie z dodatnim ruchem względem bazy lub wysokim potencjałem wzrostu
       const gainers = out.map((v, i) => Math.max(0, v - bases[i]));
       const gSum = gainers.reduce((a, b) => a + b, 0);
       if (gSum > 1e-6) {
-        for (let i = 0; i < n; i++) {
-          out[i] += diff * (gainers[i] / gSum);
-        }
+        for (let i = 0; i < n; i++) out[i] += diff * (gainers[i] / gSum);
       } else {
-        // Jeśli żadna partia nie rośnie powyżej bazy, rozdziel proporcjonalnie do obecnego poparcia
         const posSum = out.reduce((a, b) => a + b, 0) || 1;
-        for (let i = 0; i < n; i++) {
-          out[i] += diff * (out[i] / posSum);
-        }
+        for (let i = 0; i < n; i++) out[i] += diff * (out[i] / posSum);
       }
     } else {
-      // diff < 0: łączne poparcie przekroczyło targetSum — odejmij nadwyżkę proporcjonalnie do dodatnich przyrostów lub poparcia
       const excess = -diff;
       const gainers = out.map((v, i) => Math.max(0, v - bases[i]));
       const gSum = gainers.reduce((a, b) => a + b, 0);
       if (gSum > 1e-6) {
         for (let i = 0; i < n; i++) {
-          const cut = Math.min(out[i], excess * (gainers[i] / gSum));
-          out[i] -= cut;
+          out[i] -= Math.min(out[i], excess * (gainers[i] / gSum));
         }
       } else {
         const posSum = out.reduce((a, b) => a + b, 0) || 1;
         for (let i = 0; i < n; i++) {
-          const cut = Math.min(out[i], excess * (out[i] / posSum));
-          out[i] -= cut;
+          out[i] -= Math.min(out[i], excess * (out[i] / posSum));
         }
       }
     }
 
-    // Domknięcie reszty numerycznej na największej partii
     const finalSum = out.reduce((a, b) => a + b, 0);
     const residual = targetSum - finalSum;
     if (Math.abs(residual) > 1e-9) {
@@ -821,7 +822,6 @@
     beforeDatasetsDraw(chart) {
       const { ctx, chartArea, scales } = chart;
       if (!chartArea || !scales.y) return;
-      // Próg 5% od głosów ważnych po odjęciu ~1,6% "innych" odpowiada ~4,92% ogółu głosów
       const effectiveThreshold = 5.0 * ((100 - OTHER_PARTIES_SHARE) / 100);
       const y5 = scales.y.getPixelForValue(effectiveThreshold);
       const yBottom = chartArea.bottom;
@@ -839,10 +839,6 @@
   };
 
   function computeModel() {
-    const isAuto = document.getElementById("autoMode").checked;
-    const slider = document.getElementById("phiSlider");
-    slider.disabled = isAuto;
-
     let maxValidIdx = 0;
     dataset.forEach(p => {
       p.rawSeries.forEach((v, idx) => {
@@ -854,12 +850,8 @@
     lastMonthIdx = maxValidIdx;
 
     const hMain = Math.max(0, 24 - lastMonthIdx);
-    const phi = isAuto ? getAutoPhi(hMain) : parseFloat(slider.value);
+    const phi = getSmoothPhi(hMain);
 
-    slider.value = phi.toFixed(2);
-    document.getElementById("phiVal").textContent = phi.toFixed(2);
-
-    // Wyznacz bazową sumę poparcia w ostatnim znanym miesiącu (lastMonthIdx)
     const baseLastVals = dataset.map(p => {
       let val = p.rawSeries[lastMonthIdx];
       if (typeof val !== "number" || isNaN(val)) {
@@ -874,7 +866,6 @@
     });
     const targetTotalSupport = baseLastVals.reduce((a, b) => a + b, 0);
 
-    // Parametry trendu i kotwicy dla każdej partii
     const partyMeta = dataset.map((p, idx) => {
       const validPoints = [];
       p.rawSeries.forEach((v, mIdx) => {
@@ -885,6 +876,7 @@
       const last = lastObj.val;
       const partyLastIdx = lastObj.idx;
       const h = Math.max(0, 24 - partyLastIdx);
+      const partyPhi = getSmoothPhi(h);
 
       const slopeWeights = [0.45, 0.25, 0.18, 0.12];
       const stepDiffs = [];
@@ -910,7 +902,7 @@
 
       const wAnchor = hasAvg ? Math.min(0.35, 0.15 + 0.03 * diffAbs) : 0;
       const startBase = hasAvg ? (last + 0.35 * wAnchor * diffVal) : last;
-      const multH = Math.max(0.01, phi * (1 - Math.pow(phi, Math.max(1, h))) / (1 - phi));
+      const multH = Math.max(0.01, partyPhi * (1 - Math.pow(partyPhi, Math.max(1, h))) / (1 - partyPhi));
       const adjTrend = weightedTrend + (hasAvg ? (0.40 * wAnchor * (diffVal / multH)) : 0);
 
       return {
@@ -918,6 +910,7 @@
         last,
         partyLastIdx,
         h,
+        partyPhi,
         weightedTrend,
         aggAvg,
         hasAvg,
@@ -942,14 +935,14 @@
       projLines[i][mIdx] = partyMeta[i].last;
     });
 
-    // Krok po kroku od lastMonthIdx + 1 do 24 (lis.27), z zachowaniem stałej sumy poparcia targetTotalSupport
     const finalForecasts = [...baseLastVals];
     for (let t = lastMonthIdx + 1; t <= 24; t++) {
       const rawStepVals = dataset.map((p, i) => {
         const meta = partyMeta[i];
         if (t <= meta.partyLastIdx) return meta.last;
         const step = t - meta.partyLastIdx;
-        const multStep = phi * (1 - Math.pow(phi, step)) / (1 - phi);
+        const pPhi = meta.partyPhi;
+        const multStep = pPhi * (1 - Math.pow(pPhi, step)) / (1 - pPhi);
         return Math.max(0, meta.startBase + meta.adjTrend * multStep);
       });
 
@@ -970,19 +963,16 @@
       }
     }
 
-    // Symulacja D'Hondta osobno w 41 okręgach (460 mandatów; bez mandatu MN; równa frekwencja;
-    // próg 5% liczony od głosów ważnych po odjęciu ~1,6% "innych")
+    // D'Hondt w 41 okręgach (460 mandatów; bez mandatu MN; równa frekwencja; próg 5% od głosów ważnych po odjęciu ~1,6% „innych”)
     const districtSeatsAccum = new Array(dataset.length).fill(0);
 
     DISTRICTS_41.forEach((dist, dIdx) => {
-      // Poparcie partii w okręgu k z uwzględnieniem profilu regionalnego
       const distPartySupport = dataset.map((p, pIdx) => {
         const regWeights = NORMALIZED_REGION_WEIGHTS[p.name] || DISTRICTS_41.map(() => 1.0);
         return Math.max(0, finalForecasts[pIdx] * regWeights[dIdx]);
       });
 
       const sumPartyInDist = distPartySupport.reduce((a, b) => a + b, 0);
-      // Głosy ważne na komitety w okręgu po uwzględnieniu ~1,6% "innych"
       const totalValidVotesInDist = sumPartyInDist / (1 - OTHER_PARTIES_SHARE / 100);
       const thresholdVotes = 0.05 * totalValidVotesInDist;
 
@@ -1025,19 +1015,16 @@
       };
     });
 
-    return { computed, hMain, phi, isAuto, targetTotalSupport };
+    return { computed, hMain, phi, targetTotalSupport };
   }
 
   function saveCurrentState() {
     try {
-      const stateObj = {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
         version: BUNDLED_DATA_VERSION,
         dataset: dataset,
-        lastMonthIdx: lastMonthIdx,
-        autoMode: document.getElementById("autoMode").checked,
-        phiSlider: parseFloat(document.getElementById("phiSlider").value)
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(stateObj));
+        lastMonthIdx: lastMonthIdx
+      }));
     } catch (e) {}
   }
 
@@ -1053,8 +1040,6 @@
       if (Array.isArray(st.dataset) && st.dataset.length > 0) {
         dataset = st.dataset;
         if (typeof st.lastMonthIdx === "number") lastMonthIdx = st.lastMonthIdx;
-        if (typeof st.autoMode === "boolean") document.getElementById("autoMode").checked = st.autoMode;
-        if (typeof st.phiSlider === "number") document.getElementById("phiSlider").value = st.phiSlider;
         return true;
       }
     } catch (e) {}
@@ -1074,12 +1059,12 @@
   }
 
   function renderAll() {
-    const { computed, hMain, phi, isAuto, targetTotalSupport } = computeModel();
+    const { computed, hMain, phi, targetTotalSupport } = computeModel();
     const sorted = [...computed].sort((a, b) => b.forecast - a.forecast);
 
     const lastLbl = MONTHS_25[lastMonthIdx] || "lis.26";
     document.getElementById("dataStatus").textContent =
-      `Baza: ${lastLbl} → cel: lis.27 (h=${hMain}) • ${isAuto ? 'AUTO ' : ''}φ=${phi.toFixed(2)}`;
+      `Baza: ${lastLbl} → cel: lis.27 (h=${hMain}) • φ=${phi.toFixed(2)}`;
 
     const totalForecastSum = sorted.reduce((acc, p) => acc + p.forecast, 0);
     const sumHeaderEl = document.getElementById("totalSupportHeader");
@@ -1206,13 +1191,18 @@
     const ctx = canvas.getContext("2d");
     const datasets = [];
     const effectiveThresholdPct = 5.0 * ((100 - OTHER_PARTIES_SHARE) / 100);
+    const zoom = getCurrentZoomScale();
+    const inv = 1 / zoom;
 
     datasets.push({
       label: `Próg 5% ważnych (~${effectiveThresholdPct.toFixed(2)}% ogółu)`,
       data: new Array(25).fill(effectiveThresholdPct),
       borderColor: "#facc15",
-      borderWidth: 2.2,
-      borderDash: [7, 4],
+      _baseBorderWidth: 2.2,
+      borderWidth: Math.max(0.7, 2.2 * inv),
+      _baseBorderDash: [7, 4],
+      borderDash: [7 * inv, 4 * inv],
+      _basePointRadius: 0,
       pointRadius: 0,
       fill: false,
       order: 10
@@ -1227,9 +1217,12 @@
         data: p.histLine,
         borderColor: color,
         backgroundColor: color,
-        borderWidth: 1.7,
-        pointRadius: 1.5,
-        pointHoverRadius: 4.5,
+        _baseBorderWidth: 1.8,
+        borderWidth: Math.max(0.65, 1.8 * inv),
+        _basePointRadius: 1.6,
+        pointRadius: Math.max(1.0, 1.6 * inv),
+        _baseHoverRadius: 4.5,
+        pointHoverRadius: Math.max(2.5, 4.5 * inv),
         tension: 0.25,
         order: 3
       });
@@ -1239,10 +1232,14 @@
         data: p.projLine,
         borderColor: color,
         backgroundColor: color,
-        borderWidth: 1.6,
-        borderDash: [5, 4],
+        _baseBorderWidth: 1.7,
+        borderWidth: Math.max(0.65, 1.7 * inv),
+        _baseBorderDash: [5, 4],
+        borderDash: [5 * inv, 4 * inv],
+        _basePointRadius: 0,
         pointRadius: 0,
-        pointHoverRadius: 4.5,
+        _baseHoverRadius: 4.5,
+        pointHoverRadius: Math.max(2.5, 4.5 * inv),
         tension: 0.25,
         order: 4
       });
@@ -1253,10 +1250,13 @@
           data: p.avgPoint,
           borderColor: "#ffffff",
           backgroundColor: color,
-          borderWidth: 0.9,
+          _baseBorderWidth: 0.9,
+          borderWidth: Math.max(0.5, 0.9 * inv),
           pointStyle: "rectRot",
-          pointRadius: 4.5,
-          pointHoverRadius: 6.5,
+          _basePointRadius: 4.5,
+          pointRadius: Math.max(2.2, 4.5 * inv),
+          _baseHoverRadius: 6.5,
+          pointHoverRadius: Math.max(3.2, 6.5 * inv),
           showLine: false,
           order: 2
         });
@@ -1267,10 +1267,13 @@
         data: p.targetPoint,
         borderColor: "#ffffff",
         backgroundColor: color,
-        borderWidth: 2,
+        _baseBorderWidth: 2.0,
+        borderWidth: Math.max(0.8, 2.0 * inv),
         pointStyle: "circle",
-        pointRadius: 4.5,
-        pointHoverRadius: 6.5,
+        _basePointRadius: 4.5,
+        pointRadius: Math.max(2.2, 4.5 * inv),
+        _baseHoverRadius: 6.5,
+        pointHoverRadius: Math.max(3.2, 6.5 * inv),
         showLine: false,
         order: 1
       });
@@ -1279,6 +1282,8 @@
     if (chartInstance) {
       chartInstance.destroy();
     }
+
+    const dpr = Math.min(4, (window.devicePixelRatio || 1) * Math.min(2.2, zoom));
 
     chartInstance = new Chart(ctx, {
       type: "line",
@@ -1290,6 +1295,7 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        devicePixelRatio: dpr,
         interaction: {
           mode: "index",
           intersect: false
@@ -1318,7 +1324,7 @@
           x: {
             ticks: {
               color: "#94a3b8",
-              font: { size: 10 },
+              font: { size: Math.max(7, Math.round(10 * inv)) },
               maxRotation: 45,
               autoSkip: true,
               maxTicksLimit: 9
@@ -1330,7 +1336,7 @@
             suggestedMax: 36,
             ticks: {
               color: "#94a3b8",
-              font: { size: 10 },
+              font: { size: Math.max(7, Math.round(10 * inv)) },
               callback: v => v + "%"
             },
             grid: { color: "rgba(148, 163, 184, 0.12)" }
@@ -1906,11 +1912,10 @@
     dataset = cloneDefaultDataset();
     lastMonthIdx = 12;
     autoNear5Applied = false;
-    document.getElementById("autoMode").checked = true;
     renderAll();
     const banner = document.getElementById("syncBanner");
     banner.classList.add("visible");
-    banner.innerHTML = "↺ Przywrócono wbudowane dane bazowe z wersji " + BUNDLED_DATA_VERSION + ".";
+    banner.innerHTML = "↺ Przywrócono wbudowane dane bazowe (" + BUNDLED_DATA_VERSION + ").";
   });
 
   document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -1925,8 +1930,12 @@
     });
   });
 
-  document.getElementById("autoMode").addEventListener("change", renderAll);
-  document.getElementById("phiSlider").addEventListener("input", renderAll);
+  // Nasłuch powiększeń (pinch-to-zoom / zoom przeglądarki / zmiana rozmiaru)
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", applyZoomResponsiveScaling);
+    window.visualViewport.addEventListener("scroll", applyZoomResponsiveScaling);
+  }
+  window.addEventListener("resize", applyZoomResponsiveScaling);
 
   loadSavedState();
   renderAll();
