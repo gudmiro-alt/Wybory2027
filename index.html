@@ -394,7 +394,7 @@
   <section id="view-mandates" class="tab-view active">
     <div class="card">
       <div class="card-title">
-        <span>Podział mandatów (D'Hondt 1,15)</span>
+        <span>Podział mandatów (41 okręgów • D'Hondt)</span>
         <span>Większość: 231</span>
       </div>
       <div class="sejm-bar-wrap" id="partySeatsBar">
@@ -417,14 +417,14 @@
     <div class="card">
       <div class="card-title">
         <span>Prognoza na listopad 2027</span>
-        <span>Poparcie / Mandaty</span>
+        <span id="totalSupportHeader">Suma: 90,70%</span>
       </div>
       <div id="partyList"></div>
     </div>
 
     <div class="card">
       <div class="card-title">
-        <span>Parametry modelu (D'Hondt okręgowy 1,15)</span>
+        <span>Parametry modelu (41 okręgów • D'Hondt)</span>
       </div>
       <label class="auto-toggle">
         <span><strong>AUTO tłumienie φ(h)</strong> (wg liczby mies. do 11/2027)</span>
@@ -438,8 +438,8 @@
         <input type="range" id="phiSlider" min="0.60" max="0.95" step="0.05" value="0.80" disabled />
       </div>
       <div class="status-note">
-        Tryb AUTO: h&gt;8 → φ=0,80 • h=5..8 → φ=0,85 • h≤4 → φ=0,75.<br/>
-        Ważony trend z 4 ostatnich kroków (45% / 25% / 18% / 12%) + miękka kotwica z 3 agregatorów w(Δ) = min(0,35; 0,15 + 0,03·|Δ|).
+        Zachowanie sumy poparcia (bilansowanie zysków i strat między partiami).<br/>
+        D'Hondt osobno w 41 okręgach (460 mandatów; próg 5% od głosów ważnych po odjęciu ~1,6% „innych”; profile regionalne; równa frekwencja; bez mandatu MN).
       </div>
       <div style="text-align:center; margin-top:8px;">
         <button id="resetFactoryBtn" style="background:transparent; border:1px solid rgba(148,163,184,0.28); color:#94a3b8; font-size:0.68rem; padding:4px 9px; border-radius:7px; cursor:pointer;">
@@ -467,7 +467,7 @@
       <div class="legend-guide">
         <div class="legend-item">
           <span class="sym-thresh"></span>
-          <span><strong>Linia progu 5%:</strong> granica wejścia do Sejmu (obszar poniżej 5% we mgle)</span>
+          <span><strong>Linia progu 5%:</strong> próg 5% od głosów ważnych (po odjęciu ~1,6% „innych”)</span>
         </div>
         <div class="legend-item">
           <span class="sym-line"></span>
@@ -475,7 +475,7 @@
         </div>
         <div class="legend-item">
           <span class="sym-dash"></span>
-          <span><strong>Linia przerywana:</strong> wygaszana projekcja trendu</span>
+          <span><strong>Linia przerywana:</strong> zbilansowana, wygaszana projekcja trendu</span>
         </div>
         <div class="legend-item">
           <span class="sym-diamond"></span>
@@ -490,8 +490,11 @@
   </section>
 
 <script>
-  const BUNDLED_DATA_VERSION = "2026-11-v12";
-  const STORAGE_KEY = "prognoza_sejm_2027_state_v12";
+  const BUNDLED_DATA_VERSION = "2026-11-v13";
+  const STORAGE_KEY = "prognoza_sejm_2027_state_v13";
+
+  // Udział "innych" komitetów odejmowany przy liczeniu głosów ważnych pod próg 5%
+  const OTHER_PARTIES_SHARE = 1.6;
 
   // Konfiguracja PWA (Manifest + Ikona SVG + Service Worker dla trybu pełnoekranowego i offline)
   (function initPwa() {
@@ -514,7 +517,7 @@
     const manifestObj = {
       name: "Prognoza Sejm 2027",
       short_name: "Sejm 2027",
-      description: "Model prognozowania poparcia i podziału 460 mandatów metodą D'Hondta na listopad 2027 r.",
+      description: "Model prognozowania poparcia i podziału 460 mandatów w 41 okręgach metodą D'Hondta na listopad 2027 r.",
       start_url: "./",
       display: "standalone",
       orientation: "portrait",
@@ -593,8 +596,139 @@
     "lip.27", "sie.27", "wrz.27", "paź.27", "lis.27"
   ];
 
-  // Stały wykładnik D'Hondta dla 41 okręgów (1,15)
-  const DHONDT_EXP = 1.15;
+  // 41 okręgów wyborczych do Sejmu (suma mandatów = 460; pominięty mandat MN w Opolu; równa frekwencja)
+  const DISTRICTS_41 = [
+    { nr: 1,  name: "Legnica",              seats: 12, reg: "west" },
+    { nr: 2,  name: "Wałbrzych",            seats: 8,  reg: "west" },
+    { nr: 3,  name: "Wrocław",              seats: 14, reg: "metro_west" },
+    { nr: 4,  name: "Bydgoszcz",            seats: 12, reg: "north_center" },
+    { nr: 5,  name: "Toruń",                seats: 13, reg: "north_center" },
+    { nr: 6,  name: "Lublin",               seats: 15, reg: "east" },
+    { nr: 7,  name: "Chełm",                seats: 12, reg: "east" },
+    { nr: 8,  name: "Zielona Góra",         seats: 12, reg: "west" },
+    { nr: 9,  name: "Łódź",                 seats: 10, reg: "metro_center" },
+    { nr: 10, name: "Piotrków Trybunalski", seats: 9,  reg: "center" },
+    { nr: 11, name: "Sieradz",              seats: 12, reg: "center_rural" },
+    { nr: 12, name: "Kraków I",             seats: 8,  reg: "metro_south" },
+    { nr: 13, name: "Kraków II",            seats: 14, reg: "south_rural" },
+    { nr: 14, name: "Nowy Sącz",            seats: 10, reg: "south_east" },
+    { nr: 15, name: "Tarnów",               seats: 9,  reg: "south_east" },
+    { nr: 16, name: "Płock",                seats: 10, reg: "center_rural" },
+    { nr: 17, name: "Radom",                seats: 9,  reg: "east_center" },
+    { nr: 18, name: "Siedlce",              seats: 12, reg: "east" },
+    { nr: 19, name: "Warszawa I",           seats: 20, reg: "metro_capital" },
+    { nr: 20, name: "Warszawa II",          seats: 12, reg: "suburb_center" },
+    { nr: 21, name: "Opole",                seats: 12, reg: "west_south" },
+    { nr: 22, name: "Krosno",               seats: 11, reg: "south_east" },
+    { nr: 23, name: "Rzeszów",              seats: 15, reg: "south_east" },
+    { nr: 24, name: "Białystok",            seats: 14, reg: "east" },
+    { nr: 25, name: "Gdańsk",               seats: 12, reg: "metro_north" },
+    { nr: 26, name: "Słupsk",               seats: 14, reg: "north" },
+    { nr: 27, name: "Bielsko-Biała I",      seats: 9,  reg: "south" },
+    { nr: 28, name: "Częstochowa",          seats: 7,  reg: "center_south" },
+    { nr: 29, name: "Katowice I",           seats: 9,  reg: "metro_silesia" },
+    { nr: 30, name: "Bielsko-Biała II",     seats: 9,  reg: "south" },
+    { nr: 31, name: "Katowice II",          seats: 12, reg: "metro_silesia" },
+    { nr: 32, name: "Katowice III",         seats: 9,  reg: "metro_silesia" },
+    { nr: 33, name: "Kielce",               seats: 16, reg: "center_east" },
+    { nr: 34, name: "Elbląg",               seats: 8,  reg: "north" },
+    { nr: 35, name: "Olsztyn",              seats: 10, reg: "north_east" },
+    { nr: 36, name: "Kalisz",               seats: 12, reg: "west_rural" },
+    { nr: 37, name: "Konin",                seats: 9,  reg: "center_rural" },
+    { nr: 38, name: "Piła",                 seats: 9,  reg: "west_rural" },
+    { nr: 39, name: "Poznań",               seats: 10, reg: "metro_west" },
+    { nr: 40, name: "Koszalin",             seats: 8,  reg: "north_west" },
+    { nr: 41, name: "Szczecin",             seats: 12, reg: "north_west" }
+  ];
+
+  // Profile regionalne (mnożniki względem średniej partii w kraju)
+  const REGION_PROFILES = {
+    KO: {
+      metro_capital: 1.26, metro_north: 1.24, metro_west: 1.22, metro_south: 1.18,
+      metro_center: 1.14, metro_silesia: 1.10, north_west: 1.16, west: 1.14,
+      north: 1.15, north_center: 1.08, suburb_center: 1.10, west_south: 1.12,
+      west_rural: 1.02, north_east: 1.00, center: 0.94, center_south: 0.96,
+      south: 0.95, center_rural: 0.88, center_east: 0.84, east_center: 0.82,
+      south_rural: 0.82, south_east: 0.72, east: 0.74
+    },
+    PIS: {
+      east: 1.38, south_east: 1.42, east_center: 1.34, south_rural: 1.28,
+      center_east: 1.26, north_east: 1.18, center_rural: 1.16, south: 1.15,
+      center: 1.12, center_south: 1.06, suburb_center: 0.96, north_center: 0.94,
+      metro_center: 0.88, metro_silesia: 0.88, west_south: 0.84, metro_south: 0.82,
+      west_rural: 0.84, north: 0.82, west: 0.78, north_west: 0.76,
+      metro_west: 0.72, metro_north: 0.70, metro_capital: 0.68
+    },
+    KONF: {
+      metro_capital: 1.08, metro_west: 1.06, metro_south: 1.06, south_east: 1.08,
+      east: 1.06, suburb_center: 1.05, west_rural: 1.02, center_rural: 1.02,
+      north_west: 0.98, west: 0.98, metro_north: 0.98, metro_silesia: 0.98,
+      metro_center: 0.96, north: 0.95, north_center: 0.95, center: 0.96,
+      east_center: 0.98, south_rural: 1.00, center_east: 0.98, south: 0.96,
+      center_south: 0.95, north_east: 0.95, west_south: 0.92
+    },
+    KPP: {
+      south_east: 1.24, east: 1.22, south_rural: 1.16, east_center: 1.14,
+      center_east: 1.12, center_rural: 1.08, south: 1.06, suburb_center: 1.02,
+      center: 1.00, center_south: 0.98, north_east: 0.98, west_rural: 0.95,
+      metro_silesia: 0.94, metro_capital: 0.92, metro_south: 0.92, metro_center: 0.92,
+      north_center: 0.90, north: 0.88, west: 0.86, west_south: 0.86,
+      north_west: 0.85, metro_west: 0.85, metro_north: 0.85
+    },
+    LEWICA: {
+      metro_capital: 1.32, metro_west: 1.24, metro_center: 1.22, metro_north: 1.18,
+      metro_south: 1.15, metro_silesia: 1.12, north_west: 1.08, west: 1.05,
+      north: 1.02, north_center: 0.98, west_south: 0.98, suburb_center: 0.96,
+      west_rural: 0.92, center: 0.90, center_south: 0.92, center_rural: 0.84,
+      north_east: 0.82, center_east: 0.82, east_center: 0.78, south_rural: 0.76,
+      south: 0.76, east: 0.72, south_east: 0.68
+    },
+    "R+": {
+      south_east: 1.18, east: 1.15, south_rural: 1.12, east_center: 1.10,
+      center_east: 1.08, south: 1.06, center_rural: 1.02, suburb_center: 1.02,
+      center: 1.00, center_south: 0.98, metro_silesia: 0.96, north_east: 0.96,
+      north_center: 0.94, west_rural: 0.92, metro_capital: 0.90, metro_south: 0.90,
+      metro_center: 0.88, north: 0.88, west: 0.86, west_south: 0.86,
+      north_west: 0.84, metro_west: 0.84, metro_north: 0.84
+    },
+    PSL: {
+      center_rural: 1.36, south_rural: 1.32, east: 1.24, center_east: 1.22,
+      east_center: 1.18, west_rural: 1.18, north_center: 1.14, center: 1.12,
+      south_east: 1.10, north_east: 1.08, suburb_center: 1.04, south: 1.02,
+      center_south: 1.00, north: 0.96, west_south: 0.95, west: 0.88,
+      north_west: 0.84, metro_silesia: 0.76, metro_center: 0.74, metro_south: 0.74,
+      metro_north: 0.72, metro_west: 0.70, metro_capital: 0.62
+    },
+    RAZEM: {
+      metro_capital: 1.38, metro_west: 1.28, metro_south: 1.24, metro_center: 1.22,
+      metro_north: 1.20, metro_silesia: 1.12, north_west: 1.04, west: 1.02,
+      suburb_center: 0.98, north: 0.94, north_center: 0.92, west_south: 0.92,
+      west_rural: 0.84, center: 0.84, center_south: 0.86, center_rural: 0.76,
+      north_east: 0.76, center_east: 0.74, east_center: 0.72, south_rural: 0.70,
+      south: 0.72, east: 0.68, south_east: 0.64
+    },
+    PL2050: {
+      metro_capital: 1.18, metro_north: 1.14, metro_west: 1.12, suburb_center: 1.10,
+      metro_south: 1.08, north_east: 1.06, metro_center: 1.04, north_west: 1.02,
+      north: 1.02, west: 1.00, north_center: 1.00, west_south: 0.98,
+      metro_silesia: 0.96, west_rural: 0.96, center: 0.94, center_south: 0.94,
+      center_rural: 0.92, south: 0.92, center_east: 0.90, east_center: 0.88,
+      south_rural: 0.88, east: 0.86, south_east: 0.84
+    }
+  };
+
+  // Normalizacja wag regionalnych w obrębie każdej partii ważona liczbą mandatów w okręgu,
+  // tak aby średnia krajowa wagi regionalnej wynosiła dokładnie 1,00 (zachowanie sumy w kraju).
+  const NORMALIZED_REGION_WEIGHTS = {};
+  (function initNormalizedRegionWeights() {
+    const totalSeats = DISTRICTS_41.reduce((acc, d) => acc + d.seats, 0);
+    Object.keys(REGION_PROFILES).forEach(partyName => {
+      const prof = REGION_PROFILES[partyName];
+      const rawByDistrict = DISTRICTS_41.map(d => prof[d.reg] ?? 1.0);
+      const weightedMean = rawByDistrict.reduce((acc, w, idx) => acc + w * DISTRICTS_41[idx].seats, 0) / totalSeats;
+      NORMALIZED_REGION_WEIGHTS[partyName] = rawByDistrict.map(w => w / weightedMean);
+    });
+  })();
 
   const DEFAULT_DATASET = [
     { name: "KO",     bloc: "Demokratyczny", rawSeries: [31.30, 31.30, 31.20, 31.20, 31.20, 31.20, 31.20, 31.20, 31.20, 31.30, 31.30, 31.40, 31.50], ewAvg: 31.60, apAvg: 32.40, ppAvg: 32.60, visible: true },
@@ -622,12 +756,74 @@
     return 0.75;
   }
 
+  // Bilansowanie wektora wartości w kroku t tak, aby zachować docelową sumę poparcia targetSum
+  // (to, co jedna partia traci, przechodzi na inne partie z dodatnim przyrostem / przyciąganiem agregatorów).
+  function rebalanceToTargetSum(values, bases, targetSum) {
+    const n = values.length;
+    const out = values.map(v => Math.max(0, v));
+    const currentSum = out.reduce((a, b) => a + b, 0);
+    const diff = targetSum - currentSum; // > 0 gdy łączne poparcie spadło poniżej targetSum
+
+    if (Math.abs(diff) < 1e-9) {
+      return out;
+    }
+
+    if (diff > 0) {
+      // Kto powinien przejąć utracone punkty: partie z dodatnim ruchem względem bazy lub wysokim potencjałem wzrostu
+      const gainers = out.map((v, i) => Math.max(0, v - bases[i]));
+      const gSum = gainers.reduce((a, b) => a + b, 0);
+      if (gSum > 1e-6) {
+        for (let i = 0; i < n; i++) {
+          out[i] += diff * (gainers[i] / gSum);
+        }
+      } else {
+        // Jeśli żadna partia nie rośnie powyżej bazy, rozdziel proporcjonalnie do obecnego poparcia
+        const posSum = out.reduce((a, b) => a + b, 0) || 1;
+        for (let i = 0; i < n; i++) {
+          out[i] += diff * (out[i] / posSum);
+        }
+      }
+    } else {
+      // diff < 0: łączne poparcie przekroczyło targetSum — odejmij nadwyżkę proporcjonalnie do dodatnich przyrostów lub poparcia
+      const excess = -diff;
+      const gainers = out.map((v, i) => Math.max(0, v - bases[i]));
+      const gSum = gainers.reduce((a, b) => a + b, 0);
+      if (gSum > 1e-6) {
+        for (let i = 0; i < n; i++) {
+          const cut = Math.min(out[i], excess * (gainers[i] / gSum));
+          out[i] -= cut;
+        }
+      } else {
+        const posSum = out.reduce((a, b) => a + b, 0) || 1;
+        for (let i = 0; i < n; i++) {
+          const cut = Math.min(out[i], excess * (out[i] / posSum));
+          out[i] -= cut;
+        }
+      }
+    }
+
+    // Domknięcie reszty numerycznej na największej partii
+    const finalSum = out.reduce((a, b) => a + b, 0);
+    const residual = targetSum - finalSum;
+    if (Math.abs(residual) > 1e-9) {
+      let maxIdx = 0;
+      for (let i = 1; i < n; i++) {
+        if (out[i] > out[maxIdx]) maxIdx = i;
+      }
+      out[maxIdx] = Math.max(0, out[maxIdx] + residual);
+    }
+
+    return out;
+  }
+
   const belowThresholdFogPlugin = {
     id: "belowThresholdFog",
     beforeDatasetsDraw(chart) {
       const { ctx, chartArea, scales } = chart;
       if (!chartArea || !scales.y) return;
-      const y5 = scales.y.getPixelForValue(5.0);
+      // Próg 5% od głosów ważnych po odjęciu ~1,6% "innych" odpowiada ~4,92% ogółu głosów
+      const effectiveThreshold = 5.0 * ((100 - OTHER_PARTIES_SHARE) / 100);
+      const y5 = scales.y.getPixelForValue(effectiveThreshold);
       const yBottom = chartArea.bottom;
       if (yBottom <= y5) return;
 
@@ -663,13 +859,29 @@
     slider.value = phi.toFixed(2);
     document.getElementById("phiVal").textContent = phi.toFixed(2);
 
-    const computed = dataset.map(p => {
+    // Wyznacz bazową sumę poparcia w ostatnim znanym miesiącu (lastMonthIdx)
+    const baseLastVals = dataset.map(p => {
+      let val = p.rawSeries[lastMonthIdx];
+      if (typeof val !== "number" || isNaN(val)) {
+        for (let k = lastMonthIdx - 1; k >= 0; k--) {
+          if (typeof p.rawSeries[k] === "number" && !isNaN(p.rawSeries[k])) {
+            val = p.rawSeries[k];
+            break;
+          }
+        }
+      }
+      return typeof val === "number" && !isNaN(val) ? val : 0;
+    });
+    const targetTotalSupport = baseLastVals.reduce((a, b) => a + b, 0);
+
+    // Parametry trendu i kotwicy dla każdej partii
+    const partyMeta = dataset.map((p, idx) => {
       const validPoints = [];
-      p.rawSeries.forEach((v, idx) => {
-        if (typeof v === "number" && !isNaN(v)) validPoints.push({ val: v, idx });
+      p.rawSeries.forEach((v, mIdx) => {
+        if (typeof v === "number" && !isNaN(v)) validPoints.push({ val: v, idx: mIdx });
       });
 
-      const lastObj = validPoints[validPoints.length - 1];
+      const lastObj = validPoints[validPoints.length - 1] || { val: baseLastVals[idx], idx: lastMonthIdx };
       const last = lastObj.val;
       const partyLastIdx = lastObj.idx;
       const h = Math.max(0, 24 - partyLastIdx);
@@ -701,64 +913,119 @@
       const multH = Math.max(0.01, phi * (1 - Math.pow(phi, Math.max(1, h))) / (1 - phi));
       const adjTrend = weightedTrend + (hasAvg ? (0.40 * wAnchor * (diffVal / multH)) : 0);
 
-      const histLine = new Array(25).fill(null);
-      const projLine = new Array(25).fill(null);
-      const avgPoint = new Array(25).fill(null);
-      const targetPoint = new Array(25).fill(null);
-
-      for (let i = 0; i <= partyLastIdx; i++) {
-        histLine[i] = p.rawSeries[i];
-      }
-
-      if (hasAvg) {
-        avgPoint[partyLastIdx] = aggAvg;
-      }
-
-      projLine[partyLastIdx] = last;
-      let rawForecast = last;
-      for (let step = 1; step <= h; step++) {
-        const multStep = phi * (1 - Math.pow(phi, step)) / (1 - phi);
-        const valStep = Math.max(0, startBase + adjTrend * multStep);
-        projLine[partyLastIdx + step] = valStep;
-        if (step === h) rawForecast = valStep;
-      }
-
-      const forecast = h > 0 ? rawForecast : last;
-      targetPoint[24] = forecast;
-
-      const isNear5 = Math.abs(forecast - 5.0) <= 0.65 || (forecast >= 4.35 && forecast <= 5.50);
-
       return {
-        ...p,
+        idx,
         last,
         partyLastIdx,
         h,
-        trend: weightedTrend,
-        forecast,
-        isNear5,
-        seats: 0,
-        histLine,
-        projLine,
-        avgPoint,
-        targetPoint
+        weightedTrend,
+        aggAvg,
+        hasAvg,
+        startBase,
+        adjTrend
       };
     });
 
-    let quotients = [];
-    computed.forEach((p, idx) => {
-      if (p.forecast >= 5.0) {
-        const w = Math.pow(p.forecast, DHONDT_EXP);
-        for (let q = 1; q <= 250; q++) {
-          quotients.push({ val: w / q, idx });
-        }
+    const histLines = dataset.map(() => new Array(25).fill(null));
+    const projLines = dataset.map(() => new Array(25).fill(null));
+    const avgPoints = dataset.map(() => new Array(25).fill(null));
+    const targetPoints = dataset.map(() => new Array(25).fill(null));
+
+    dataset.forEach((p, i) => {
+      const mIdx = partyMeta[i].partyLastIdx;
+      for (let t = 0; t <= mIdx; t++) {
+        histLines[i][t] = p.rawSeries[t];
       }
-    });
-    quotients.sort((a, b) => b.val - a.val);
-    quotients.slice(0, 460).forEach(q => {
-      computed[q.idx].seats += 1;
+      if (partyMeta[i].hasAvg) {
+        avgPoints[i][mIdx] = partyMeta[i].aggAvg;
+      }
+      projLines[i][mIdx] = partyMeta[i].last;
     });
 
-    return { computed, hMain, phi, isAuto };
+    // Krok po kroku od lastMonthIdx + 1 do 24 (lis.27), z zachowaniem stałej sumy poparcia targetTotalSupport
+    const finalForecasts = [...baseLastVals];
+    for (let t = lastMonthIdx + 1; t <= 24; t++) {
+      const rawStepVals = dataset.map((p, i) => {
+        const meta = partyMeta[i];
+        if (t <= meta.partyLastIdx) return meta.last;
+        const step = t - meta.partyLastIdx;
+        const multStep = phi * (1 - Math.pow(phi, step)) / (1 - phi);
+        return Math.max(0, meta.startBase + meta.adjTrend * multStep);
+      });
+
+      const balancedStepVals = rebalanceToTargetSum(rawStepVals, baseLastVals, targetTotalSupport);
+      for (let i = 0; i < dataset.length; i++) {
+        if (t > partyMeta[i].partyLastIdx) {
+          projLines[i][t] = balancedStepVals[i];
+        }
+        if (t === 24) {
+          finalForecasts[i] = balancedStepVals[i];
+        }
+      }
+    }
+
+    if (hMain === 0) {
+      for (let i = 0; i < dataset.length; i++) {
+        finalForecasts[i] = baseLastVals[i];
+      }
+    }
+
+    // Symulacja D'Hondta osobno w 41 okręgach (460 mandatów; bez mandatu MN; równa frekwencja;
+    // próg 5% liczony od głosów ważnych po odjęciu ~1,6% "innych")
+    const districtSeatsAccum = new Array(dataset.length).fill(0);
+
+    DISTRICTS_41.forEach((dist, dIdx) => {
+      // Poparcie partii w okręgu k z uwzględnieniem profilu regionalnego
+      const distPartySupport = dataset.map((p, pIdx) => {
+        const regWeights = NORMALIZED_REGION_WEIGHTS[p.name] || DISTRICTS_41.map(() => 1.0);
+        return Math.max(0, finalForecasts[pIdx] * regWeights[dIdx]);
+      });
+
+      const sumPartyInDist = distPartySupport.reduce((a, b) => a + b, 0);
+      // Głosy ważne na komitety w okręgu po uwzględnieniu ~1,6% "innych"
+      const totalValidVotesInDist = sumPartyInDist / (1 - OTHER_PARTIES_SHARE / 100);
+      const thresholdVotes = 0.05 * totalValidVotesInDist;
+
+      const quotients = [];
+      distPartySupport.forEach((vDist, pIdx) => {
+        if (vDist >= thresholdVotes && vDist > 0) {
+          for (let q = 1; q <= dist.seats; q++) {
+            quotients.push({ val: vDist / q, pIdx });
+          }
+        }
+      });
+
+      quotients.sort((a, b) => b.val - a.val);
+      quotients.slice(0, dist.seats).forEach(q => {
+        districtSeatsAccum[q.pIdx] += 1;
+      });
+    });
+
+    const effectiveThresholdPct = 5.0 * ((100 - OTHER_PARTIES_SHARE) / 100);
+
+    const computed = dataset.map((p, i) => {
+      const forecast = finalForecasts[i];
+      const seats = districtSeatsAccum[i];
+      targetPoints[i][24] = forecast;
+      const isNear5 = Math.abs(forecast - effectiveThresholdPct) <= 0.65 || (forecast >= 4.25 && forecast <= 5.55);
+
+      return {
+        ...p,
+        last: baseLastVals[i],
+        partyLastIdx: partyMeta[i].partyLastIdx,
+        h: partyMeta[i].h,
+        trend: partyMeta[i].weightedTrend,
+        forecast,
+        isNear5,
+        seats,
+        histLine: histLines[i],
+        projLine: projLines[i],
+        avgPoint: avgPoints[i],
+        targetPoint: targetPoints[i]
+      };
+    });
+
+    return { computed, hMain, phi, isAuto, targetTotalSupport };
   }
 
   function saveCurrentState() {
@@ -807,12 +1074,18 @@
   }
 
   function renderAll() {
-    const { computed, hMain, phi, isAuto } = computeModel();
+    const { computed, hMain, phi, isAuto, targetTotalSupport } = computeModel();
     const sorted = [...computed].sort((a, b) => b.forecast - a.forecast);
 
     const lastLbl = MONTHS_25[lastMonthIdx] || "lis.26";
     document.getElementById("dataStatus").textContent =
       `Baza: ${lastLbl} → cel: lis.27 (h=${hMain}) • ${isAuto ? 'AUTO ' : ''}φ=${phi.toFixed(2)}`;
+
+    const totalForecastSum = sorted.reduce((acc, p) => acc + p.forecast, 0);
+    const sumHeaderEl = document.getElementById("totalSupportHeader");
+    if (sumHeaderEl) {
+      sumHeaderEl.textContent = `Suma: ${totalForecastSum.toFixed(2)}% (baza ${targetTotalSupport.toFixed(2)}%)`;
+    }
 
     const barEl = document.getElementById("partySeatsBar");
     barEl.innerHTML = '<div class="majority-line" title="Większość 231"></div>';
@@ -932,10 +1205,11 @@
     fallbackEl.style.display = "none";
     const ctx = canvas.getContext("2d");
     const datasets = [];
+    const effectiveThresholdPct = 5.0 * ((100 - OTHER_PARTIES_SHARE) / 100);
 
     datasets.push({
-      label: "Próg wyborczy 5%",
-      data: new Array(25).fill(5.0),
+      label: `Próg 5% ważnych (~${effectiveThresholdPct.toFixed(2)}% ogółu)`,
+      data: new Array(25).fill(effectiveThresholdPct),
       borderColor: "#facc15",
       borderWidth: 2.2,
       borderDash: [7, 4],
@@ -1030,7 +1304,7 @@
             borderWidth: 1,
             filter: function(item) {
               if (item.dataset.label.includes("(projekcja)") && item.dataIndex === lastMonthIdx) return false;
-              if (item.dataset.label === "Próg wyborczy 5%") return false;
+              if (item.dataset.label.startsWith("Próg 5%")) return false;
               return item.parsed.y !== null;
             },
             callbacks: {
@@ -1067,10 +1341,7 @@
   }
 
   // =========================================================================
-  // 1. POBIERANIE I PARSOWANIE DANYCH:
-  //    - PolitPro: tabela "Trend wyborczy przed Wybory parlamentarne w Polska" (Ważona średnia wszystkich instytutów)
-  //      z mapowaniem nazw na skróty partii (KO, PIS, KONF, KPP, LEWICA, R+, PSL, RAZEM, PL2050)
-  //    - ewybory.eu: sondaże z ostatnich 30 dni z tabeli (liczona mediana odporna na skrajne odczyty)
+  // 1. POBIERANIE I PARSOWANIE DANYCH Z AGREGATORÓW
   // =========================================================================
   const AGGREGATOR_SOURCES = [
     { key: "ewAvg", name: "ewybory.eu (mediana 30d)", url: "https://ewybory.eu/sondaze/polska/" },
@@ -1078,81 +1349,29 @@
     { key: "ppAvg", name: "PolitPro (Trend)",         url: "https://politpro.eu/pl/polska/wybory-parlamentarne" }
   ];
 
-  // Mapowanie wariantów nazw i skrótów na kody partii w modelu
   const PARTY_ALIASES = {
-    KO: [
-      "koalicja obywatelska",
-      "ko",
-      "platforma obywatelska",
-      "po"
-    ],
-    PIS: [
-      "prawo i sprawiedliwość",
-      "prawo i sprawiedliwosc",
-      "pis",
-      "zjednoczona prawica",
-      "zp"
-    ],
-    KONF: [
-      "konfederacja wolność i niepodległość",
-      "konfederacja wolnosc i niepodleglosc",
-      "konfederacja",
-      "kon"
-    ],
-    KPP: [
-      "konfederacja korony polskiej",
-      "korona polska",
-      "kkp",
-      "kpp"
-    ],
-    LEWICA: [
-      "nowa lewica",
-      "lewica",
-      "sld",
-      "wiosna"
-    ],
-    "R+": [
-      "rozwój plus",
-      "rozwoj plus",
-      "r+"
-    ],
-    PSL: [
-      "polskie stronnictwo ludowe",
-      "psl",
-      "trzecia droga"
-    ],
-    RAZEM: [
-      "partia razem",
-      "razem"
-    ],
-    PL2050: [
-      "polska 2050",
-      "pl2050",
-      "polska 2050 szymona hołowni",
-      "polska 2050 szymona holowni"
-    ]
+    KO:     ["koalicja obywatelska", "ko", "platforma obywatelska", "po"],
+    PIS:    ["prawo i sprawiedliwość", "prawo i sprawiedliwosc", "pis", "zjednoczona prawica", "zp"],
+    KONF:   ["konfederacja wolność i niepodległość", "konfederacja wolnosc i niepodleglosc", "konfederacja", "kon"],
+    KPP:    ["konfederacja korony polskiej", "korona polska", "kkp", "kpp"],
+    LEWICA: ["nowa lewica", "lewica", "sld", "wiosna"],
+    "R+":   ["rozwój plus", "rozwoj plus", "r+"],
+    PSL:    ["polskie stronnictwo ludowe", "psl", "trzecia droga"],
+    RAZEM:  ["partia razem", "razem"],
+    PL2050: ["polska 2050", "pl2050", "polska 2050 szymona hołowni", "polska 2050 szymona holowni"]
   };
 
   function normalizeLabel(str) {
-    return (str || "")
-      .toLowerCase()
-      .replace(/['’`]/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
+    return (str || "").toLowerCase().replace(/['’`]/g, "").replace(/\s+/g, " ").trim();
   }
 
   function matchPartyCodeByLabel(rawLabel) {
     const clean = normalizeLabel(rawLabel);
     if (!clean) return null;
-
-    // Najpierw sprawdź dokładne dopasowanie aliasu (żeby "kon" nie myliło się z "konfederacja korony polskiej")
-    // Kolejność kluczowa: najpierw bardziej specyficzne nazwy (KPP, PL2050, R+, RAZEM, PSL, LEWICA, KONF, PIS, KO)
     const priorityOrder = ["KPP", "PL2050", "R+", "RAZEM", "PSL", "LEWICA", "KONF", "PIS", "KO"];
     for (const code of priorityOrder) {
-      const aliases = PARTY_ALIASES[code];
-      for (const alias of aliases) {
+      for (const alias of PARTY_ALIASES[code]) {
         if (clean === alias) return code;
-        // Dopasowanie słowem/frazą z zachowaniem granic słowa
         const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         const wordRx = new RegExp(`(?:^|[^a-z0-9ąćęłńóśźż+])${escaped}(?:$|[^a-z0-9ąćęłńóśźż+])`, "i");
         if (wordRx.test(clean)) return code;
@@ -1165,15 +1384,12 @@
     if (!arr || arr.length === 0) return null;
     const sorted = [...arr].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
-    if (sorted.length % 2 === 1) {
-      return parseFloat(sorted[mid].toFixed(2));
-    }
+    if (sorted.length % 2 === 1) return parseFloat(sorted[mid].toFixed(2));
     return parseFloat(((sorted[mid - 1] + sorted[mid]) / 2).toFixed(2));
   }
 
   function parsePolishOrIsoDate(dateStr) {
     if (!dateStr) return null;
-    // Obsługa formatów: dd.mm.yyyy, dd-mm-yyyy, yyyy-mm-dd, dd.mm.yy, dd mmm yyyy
     let m = dateStr.match(/\b(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})\b/);
     if (m) {
       const d = new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
@@ -1181,8 +1397,7 @@
     }
     m = dateStr.match(/\b(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{2})\b/);
     if (m) {
-      const yr = 2000 + parseInt(m[3], 10);
-      const d = new Date(yr, parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+      const d = new Date(2000 + parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
       if (!isNaN(d.getTime())) return d;
     }
     m = dateStr.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
@@ -1193,57 +1408,44 @@
     return null;
   }
 
-  // Parser dedykowany dla PolitPro: tabela / sekcja "Trend wyborczy przed Wybory parlamentarne w Polska"
   function parsePolitProTrend(rawContent) {
     const result = {};
     if (!rawContent) return result;
-
     let scopeText = rawContent;
+
     if (rawContent.includes("<html") || rawContent.includes("<body") || rawContent.includes("<div")) {
       const doc = new DOMParser().parseFromString(rawContent, "text/html");
-
-      // Spróbuj zlokalizować sekcję lub tabelę związaną z "Trend wyborczy przed Wybory parlamentarne w Polska"
       const headings = Array.from(doc.querySelectorAll("h1, h2, h3, h4, section, article, table, div"));
       const trendHeading = headings.find(el =>
         /Trend wyborczy przed Wybory parlamentarne w Polska/i.test(el.textContent || "") &&
         el.tagName !== "BODY" && el.tagName !== "HTML"
       );
+      const container = trendHeading
+        ? (trendHeading.closest("section, article, table, .trend, [class*='trend']") || trendHeading.parentElement || doc.body)
+        : doc.body;
 
-      let container = doc.body;
-      if (trendHeading) {
-        container = trendHeading.closest("section, article, table, .trend, [class*='trend']") || trendHeading.parentElement || doc.body;
-      }
-
-      // Przeszukaj wiersze tabel lub elementy zawierające nazwę partii i wartość procentową
       const rows = Array.from(container.querySelectorAll("tr, .row, [class*='party'], [class*='bar'], li"));
       rows.forEach(row => {
         const txt = (row.innerText || row.textContent || "").replace(/\s+/g, " ").trim();
         if (!txt || txt.length > 220) return;
-
-        // Szukaj pary etykieta + liczba (np. "KO 32,6", "Prawo i Sprawiedliwość 22,2 %", "Kon 13,7", "Rozwój Plus 4,7")
         const numMatch = txt.match(/(\d{1,2}[.,]\d{1,2})\s*%?/);
         if (!numMatch) return;
-
         const val = parseFloat(numMatch[1].replace(",", "."));
         if (isNaN(val) || val < 0.3 || val > 55.0) return;
-
         const labelPart = txt.slice(0, numMatch.index).replace(/[:•|+\-–—]+$/g, "").trim();
         const code = matchPartyCodeByLabel(labelPart) || matchPartyCodeByLabel(txt);
         if (code && result[code] === undefined) {
           result[code] = parseFloat(val.toFixed(2));
         }
       });
-
       scopeText = (container.innerText || container.textContent || "").replace(/\s+/g, " ");
     } else {
       scopeText = rawContent.replace(/\s+/g, " ");
     }
 
-    // Jeśli fragment tekstowy zawiera wyraźnie sekcję "Trend wyborczy", zawęź do niej
     const markerIdx = scopeText.search(/Trend wyborczy przed Wybory parlamentarne w Polska/i);
     const searchSlice = markerIdx >= 0 ? scopeText.slice(markerIdx, markerIdx + 4500) : scopeText;
 
-    // Wzorce dla poszczególnych partii (w tym skróty PolitPro: KO, PiS, Kon, KKP, Lewica, Rozwój Plus, Razem, PSL, PL2050)
     const directPatterns = {
       KO:     [/\bKoalicja Obywatelska\b[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})/i, /\bKO\b[^0-9]{0,15}(\d{1,2}[.,]\d{1,2})/i],
       PIS:    [/\bPrawo i Sprawiedliwość\b[^0-9]{0,25}(\d{1,2}[.,]\d{1,2})/i, /\bPiS\b[^0-9]{0,15}(\d{1,2}[.,]\d{1,2})/i],
@@ -1269,35 +1471,24 @@
         }
       }
     }
-
     return result;
   }
 
-  // Parser dedykowany dla ewybory.eu: wyciąga sondaże z tabeli z ostatnich 30 dni i liczy MEDIANĘ
   function parseEwyboryLast30DaysMedian(rawContent) {
     const result = {};
     if (!rawContent) return result;
-
-    const nowMs = Date.now();
-    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
-    const cutoffMs = nowMs - thirtyDaysMs;
-
+    const cutoffMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const partySamples = {
       KO: [], PIS: [], KONF: [], KPP: [], LEWICA: [], "R+": [], PSL: [], RAZEM: [], PL2050: []
     };
 
     if (rawContent.includes("<html") || rawContent.includes("<body") || rawContent.includes("<div")) {
       const doc = new DOMParser().parseFromString(rawContent, "text/html");
-      const tables = Array.from(doc.querySelectorAll("table"));
-
-      tables.forEach(table => {
+      Array.from(doc.querySelectorAll("table")).forEach(table => {
         const headers = Array.from(table.querySelectorAll("thead th, tr:first-child th, tr:first-child td"))
           .map(th => (th.innerText || th.textContent || "").trim());
-
-        // Mapuj kolumny na kody partii
         const colPartyMap = {};
         let dateColIdx = -1;
-
         headers.forEach((hText, idx) => {
           const normH = normalizeLabel(hText);
           if (!normH) return;
@@ -1305,29 +1496,19 @@
             dateColIdx = idx;
           }
           const code = matchPartyCodeByLabel(hText);
-          if (code && colPartyMap[idx] === undefined) {
-            colPartyMap[idx] = code;
-          }
+          if (code && colPartyMap[idx] === undefined) colPartyMap[idx] = code;
         });
 
-        // Jeśli w nagłówkach znaleziono co najmniej 2 partie, czytaj wiersze sondaży
         if (Object.keys(colPartyMap).length >= 2) {
-          const bodyRows = Array.from(table.querySelectorAll("tbody tr, tr"));
-          bodyRows.forEach(tr => {
+          Array.from(table.querySelectorAll("tbody tr, tr")).forEach(tr => {
             const cells = Array.from(tr.querySelectorAll("td, th"));
             if (cells.length < 3) return;
             const rowText = (tr.innerText || tr.textContent || "").replace(/\s+/g, " ").trim();
-
-            // Sprawdź datę sondażu w wierszu (jeśli jest w kolumnie daty lub w treści wiersza)
             const dateCandidateStr = dateColIdx >= 0 && cells[dateColIdx]
               ? (cells[dateColIdx].innerText || cells[dateColIdx].textContent || "")
               : rowText;
             const parsedDate = parsePolishOrIsoDate(dateCandidateStr);
-
-            // Jeśli data jest obecna i starsza niż 30 dni — pomiń ten sondaż
-            if (parsedDate && parsedDate.getTime() < cutoffMs) {
-              return;
-            }
+            if (parsedDate && parsedDate.getTime() < cutoffMs) return;
 
             cells.forEach((cell, cIdx) => {
               const pCode = colPartyMap[cIdx];
@@ -1336,9 +1517,7 @@
               const numM = cTxt.match(/(\d{1,2}(?:\.\d{1,2})?)/);
               if (numM) {
                 const v = parseFloat(numM[1]);
-                if (!isNaN(v) && v >= 0.3 && v <= 55.0) {
-                  partySamples[pCode].push(v);
-                }
+                if (!isNaN(v) && v >= 0.3 && v <= 55.0) partySamples[pCode].push(v);
               }
             });
           });
@@ -1346,19 +1525,11 @@
       });
     }
 
-    // Fallback tekstowy / markdown (np. r.jina.ai) jeśli tabele HTML nie zwróciły próbek
-    let totalSamples = Object.values(partySamples).reduce((acc, arr) => acc + arr.length, 0);
+    const totalSamples = Object.values(partySamples).reduce((acc, arr) => acc + arr.length, 0);
     if (totalSamples === 0) {
-      const cleanLines = rawContent
-        .replace(/<[^>]+>/g, " ")
-        .split(/\r?\n/)
-        .map(l => l.replace(/\s+/g, " ").trim())
-        .filter(Boolean);
-
-      cleanLines.forEach(line => {
+      rawContent.replace(/<[^>]+>/g, " ").split(/\r?\n/).map(l => l.replace(/\s+/g, " ").trim()).filter(Boolean).forEach(line => {
         const dt = parsePolishOrIsoDate(line);
         if (dt && dt.getTime() < cutoffMs) return;
-
         for (const [pCode, aliases] of Object.entries(PARTY_ALIASES)) {
           const hit = aliases.some(al => {
             const esc = al.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -1368,9 +1539,7 @@
             const nums = line.match(/\b(\d{1,2}[.,]\d{1,2})\b/g);
             if (nums && nums.length > 0) {
               const v = parseFloat(nums[0].replace(",", "."));
-              if (!isNaN(v) && v >= 0.3 && v <= 55.0) {
-                partySamples[pCode].push(v);
-              }
+              if (!isNaN(v) && v >= 0.3 && v <= 55.0) partySamples[pCode].push(v);
             }
           }
         }
@@ -1379,21 +1548,14 @@
 
     for (const [code, samples] of Object.entries(partySamples)) {
       const med = computeMedian(samples);
-      if (med !== null) {
-        result[code] = med;
-      }
+      if (med !== null) result[code] = med;
     }
-
     return result;
   }
 
   function extractPartyPercentages(rawContent, patternsMap, sourceKey) {
-    if (sourceKey === "ppAvg") {
-      return parsePolitProTrend(rawContent);
-    }
-    if (sourceKey === "ewAvg") {
-      return parseEwyboryLast30DaysMedian(rawContent);
-    }
+    if (sourceKey === "ppAvg") return parsePolitProTrend(rawContent);
+    if (sourceKey === "ewAvg") return parseEwyboryLast30DaysMedian(rawContent);
 
     let cleanText = rawContent;
     if (rawContent.includes("<html") || rawContent.includes("<body") || rawContent.includes("<div")) {
@@ -1592,12 +1754,7 @@
       PL2050: [/Polska 2050[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i, / PL2050 [^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i]
     };
 
-    const proposed = dataset.map(p => ({
-      ewAvg: p.ewAvg,
-      apAvg: p.apAvg,
-      ppAvg: p.ppAvg
-    }));
-
+    const proposed = dataset.map(p => ({ ewAvg: p.ewAvg, apAvg: p.apAvg, ppAvg: p.ppAvg }));
     let updatedSources = [];
     let failedSources = [];
 
@@ -1611,9 +1768,7 @@
       const count = Object.keys(parsed).length;
       if (count >= 3) {
         dataset.forEach((p, idx) => {
-          if (typeof parsed[p.name] === "number") {
-            proposed[idx][src.key] = parsed[p.name];
-          }
+          if (typeof parsed[p.name] === "number") proposed[idx][src.key] = parsed[p.name];
         });
         updatedSources.push(`${src.name} (${count} partii)`);
       } else {
@@ -1624,13 +1779,10 @@
     btn.disabled = false;
     btn.textContent = "🔄 Sondaże";
 
-    let headerMsg = "";
-    if (updatedSources.length > 0) {
-      headerMsg = `📡 Odczytano automatycznie: <strong>${updatedSources.join(", ")}</strong>.` +
-        (failedSources.length > 0 ? ` Bez odczytu z: ${failedSources.join(", ")} (możesz podejrzeć linkiem i wpisać poniżej).` : "");
-    } else {
-      headerMsg = `ℹ️ Automatyczny odczyt został zablokowany po stronie przeglądarek/źródeł lub brak połączenia. Otwórz linki poniżej i wpisz wartości:`;
-    }
+    const headerMsg = updatedSources.length > 0
+      ? `📡 Odczytano automatycznie: <strong>${updatedSources.join(", ")}</strong>.` +
+        (failedSources.length > 0 ? ` Bez odczytu z: ${failedSources.join(", ")} (możesz podejrzeć linkiem i wpisać poniżej).` : "")
+      : `ℹ️ Automatyczny odczyt został zablokowany po stronie przeglądarek/źródeł lub brak połączenia. Otwórz linki poniżej i wpisz wartości:`;
 
     openReviewChangesPanel(banner, proposed, headerMsg);
   }
@@ -1735,7 +1887,7 @@
         });
         autoNear5Applied = false;
         renderAll();
-        banner.innerHTML = `✅ Zapisano dane regresji (${MONTHS_25[selectedMonthIdx]}) i przeliczono horyzont (h=${Math.max(0, 24 - lastMonthIdx)}) oraz podział mandatów.`;
+        banner.innerHTML = `✅ Zapisano dane regresji (${MONTHS_25[selectedMonthIdx]}) i przeliczono 41 okręgów oraz podział 460 mandatów.`;
       };
 
       document.getElementById("cancelRegBtn").onclick = () => {
