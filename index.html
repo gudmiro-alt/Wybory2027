@@ -420,7 +420,7 @@
     </div>
 
     <div class="footer-meta">
-      <div>41 okręgów (460 mandatów, D'Hondt) • próg 5% od głosów ważnych (po odjęciu ~1,6% „innych”) • profile regionalne • zachowanie sumy poparcia.</div>
+      <div>41 okręgów (460 mandatów, D'Hondt) • ogólnokrajowy próg 5% od głosów ważnych (po odjęciu ~1,6% „innych”) • profile regionalne • zachowanie sumy poparcia.</div>
       <button id="resetFactoryBtn" class="reset-btn">↺ Przywróć wbudowane dane bazowe</button>
     </div>
   </section>
@@ -466,8 +466,8 @@
   </section>
 
 <script>
-  const BUNDLED_DATA_VERSION = "2026-11-v14";
-  const STORAGE_KEY = "sejm_2027_state_v14";
+  const BUNDLED_DATA_VERSION = "2026-11-v15";
+  const STORAGE_KEY = "sejm_2027_state_v15";
   const OTHER_PARTIES_SHARE = 1.6;
 
   // Konfiguracja PWA
@@ -963,7 +963,9 @@
       }
     }
 
-    // D'Hondt w 41 okręgach (460 mandatów; bez mandatu MN; równa frekwencja; próg 5% od głosów ważnych po odjęciu ~1,6% „innych”)
+    // D'Hondt w 41 okręgach (460 mandatów; bez mandatu MN; równa frekwencja; ogólnokrajowy próg 5% od głosów ważnych po odjęciu ~1,6% „innych”)
+    const effectiveThresholdPct = 5.0 * ((100 - OTHER_PARTIES_SHARE) / 100);
+    const qualifiedNational = finalForecasts.map(pct => pct >= effectiveThresholdPct && pct > 0);
     const districtSeatsAccum = new Array(dataset.length).fill(0);
 
     DISTRICTS_41.forEach((dist, dIdx) => {
@@ -972,13 +974,9 @@
         return Math.max(0, finalForecasts[pIdx] * regWeights[dIdx]);
       });
 
-      const sumPartyInDist = distPartySupport.reduce((a, b) => a + b, 0);
-      const totalValidVotesInDist = sumPartyInDist / (1 - OTHER_PARTIES_SHARE / 100);
-      const thresholdVotes = 0.05 * totalValidVotesInDist;
-
       const quotients = [];
       distPartySupport.forEach((vDist, pIdx) => {
-        if (vDist >= thresholdVotes && vDist > 0) {
+        if (qualifiedNational[pIdx] && vDist > 0) {
           for (let q = 1; q <= dist.seats; q++) {
             quotients.push({ val: vDist / q, pIdx });
           }
@@ -990,8 +988,6 @@
         districtSeatsAccum[q.pIdx] += 1;
       });
     });
-
-    const effectiveThresholdPct = 5.0 * ((100 - OTHER_PARTIES_SHARE) / 100);
 
     const computed = dataset.map((p, i) => {
       const forecast = finalForecasts[i];
