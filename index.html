@@ -466,8 +466,9 @@
   </section>
 
 <script>
-  const BUNDLED_DATA_VERSION = "2026-11-v16";
-  const STORAGE_KEY = "sejm_2027_state_v16";
+  const BUNDLED_DATA_VERSION = "2026-11-v17";
+  const STORAGE_KEY = "sejm_2027_state_v17";
+  const POLLS_JSON_URL = "./data.json";
   const OTHER_PARTIES_SHARE = 1.6;
 
   // Konfiguracja PWA
@@ -1604,48 +1605,176 @@
     return result;
   }
 
-  function extractPartyPercentages(rawContent, patternsMap, sourceKey) {
-    if (sourceKey === "ppAvg") return parsePolitProTrend(rawContent);
-    if (sourceKey === "ewAvg") return parseEwyboryLast30DaysMedian(rawContent);
+  function mapHeaderToPartyCode(headerText) {
+    const h = (headerText || "").trim();
+    if (!h) return null;
+    if (h.includes("KKP")) return "KPP";
+    if (/^Razem/i.test(h)) return "RAZEM";
+    if (/^Lewica/i.test(h)) return "LEWICA";
+    if (h === "KO") return "KO";
+    if (h.includes("2050")) return "PL2050";
+    if (h === "PSL") return "PSL";
+    if (/^R\+/i.test(h)) return "R+";
+    if (/^PiS/i.test(h)) return "PIS";
+    if (/^Konfederacja/i.test(h)) return "KONF";
+    return matchPartyCodeByLabel(h);
+  }
 
-    let cleanText = rawContent;
-    if (rawContent.includes("<html") || rawContent.includes("<body") || rawContent.includes("<div")) {
-      const doc = new DOMParser().parseFromString(rawContent, "text/html");
-      doc.querySelectorAll("td, th, div, span, li, p, tr").forEach(el => {
-        el.insertAdjacentText("afterend", " | ");
-      });
-      cleanText = doc.body ? doc.body.innerText : rawContent;
-    }
-    cleanText = cleanText.replace(/\s+/g, " ");
-
-    const found = {};
-    for (const [partyCode, regexList] of Object.entries(patternsMap)) {
-      for (const rx of regexList) {
-        const m = cleanText.match(rx);
+  function extractByNameTemplate(flatText, namesMap, regexBuilder) {
+    const out = {};
+    for (const [code, pats] of Object.entries(namesMap)) {
+      for (const p of pats) {
+        const rx = regexBuilder(p);
+        const m = flatText.match(rx);
         if (m && m[1]) {
-          const val = parseFloat(m[1].replace(",", "."));
-          if (!isNaN(val) && val >= 0.3 && val <= 55.0) {
-            found[partyCode] = parseFloat(val.toFixed(2));
+          const v = parseFloat(m[1].replace(",", "."));
+          if (!isNaN(v) && v > 0.2 && v < 60.0) {
+            out[code] = parseFloat(v.toFixed(2));
             break;
           }
         }
       }
     }
-    return found;
+    return out;
+  }
+
+  function parseAtlasFromHtmlOrText(rawContent) {
+    const doc = new DOMParser().parseFromString(rawContent, "text/html");
+    const flatText = ((doc.body && (doc.body.innerText || doc.body.textContent)) || rawContent).replace(/\s+/g, " ");
+    const atlasNames = {
+      KO: ["KO"],
+      PIS: ["PiS"],
+      KONF: ["Konfederacja(?! Korony)"],
+      KPP: ["Konfederacja Korony Polskiej"],
+      LEWICA: ["Lewica"],
+      "R+": ["Rozwój Plus"],
+      RAZEM: ["Razem"],
+      PSL: ["PSL"],
+      PL2050: ["Polska 2050"]
+    };
+    return extractByNameTemplate(flatText, atlasNames, p => new RegExp(`(?<![A-Za-z0-9_ąćęłńóśźż])${p}\s+(\d{1,2},\d)\s*%`, "i"));
+  }
+
+  function parsePolitProFromHtmlOrText(rawContent) {
+    const doc = new DOMParser().parseFromString(rawContent, "text/html");
+    const flatText = ((doc.body && (doc.body.innerText || doc.body.textContent)) || rawContent).replace(/\s+/g, " ");
+    const ppNames = {
+      KO: ["KO"],
+      PIS: ["PiS"],
+      KONF: ["Kon"],
+      KPP: ["KKP"],
+      LEWICA: ["Lewica"],
+      "R+": ["Rozwój Plus"],
+      RAZEM: ["Razem"],
+      PSL: ["PSL"],
+      PL2050: ["PL2050"]
+    };
+    return extractByNameTemplate(flatText, ppNames, p => new RegExp(`(?<![A-Za-z0-9_ąćęłńóśźż])${p}\s+z\s+(?:wynikiem\s+)?(\d{1,2},\d)\s*%`, "i"));
+  }
+
+  function parseEwyboryFromHtmlOrText(rawContent, days = 30, minPolls = 5) {
+    const doc = new DOMParser().parseFromString(rawContent, "text/html");
+    const today = new Date();
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const sums = {};
+    let used = 0;
+
+    const tables = Array.from(doc.querySelectorAll("table"));
+    for (const t of tables) {
+      const rows = Array.from(t.querySelectorAll("tr"));
+      if (!rows.length) continue;
+      const head = Array.from(rows[0].querySelectorAll("th, td")).map(c => (c.textContent || "").trim());
+      const cols = head.map(mapHeaderToPartyCode);
+      const colSet = new Set(cols.filter(Boolean));
+      if (!(["KO", "PIS", "KPP", "R+"].every(req => colSet.has(req)))) continue;
+
+      for (const tr of rows.slice(1)) {
+        const cells = Array.from(tr.querySelectorAll("th, td")).map(c => (c.textContent || "").replace(/\s+/g, " ").trim());
+        if (cells.length !== head.length || cells.length === 0) continue;
+
+        const afterColon = cells[0].includes(":") ? cells[0].split(":").slice(1).join(":") : cells[0];
+        const dateMatches = Array.from(afterColon.matchAll(/(\d{1,2})\.(\d{1,2})/g));
+        if (!dateMatches.length) continue;
+
+        const lastDM = dateMatches[dateMatches.length - 1];
+        const dayNum = parseInt(lastDM[1], 10);
+        const monthNum = parseInt(lastDM[2], 10);
+        let pollDate = new Date(todayMidnight.getFullYear(), monthNum - 1, dayNum);
+        if (isNaN(pollDate.getTime()) || pollDate.getMonth() !== monthNum - 1 || pollDate.getDate() !== dayNum) continue;
+        if (pollDate > todayMidnight) {
+          pollDate = new Date(todayMidnight.getFullYear() - 1, monthNum - 1, dayNum);
+        }
+        const ageDays = Math.floor((todayMidnight - pollDate) / (1000 * 60 * 60 * 24));
+        if (ageDays > days) continue;
+
+        used += 1;
+        cols.forEach((code, cIdx) => {
+          if (!code) return;
+          const cellStr = (cells[cIdx] || "").trim();
+          if (!cellStr || cellStr === "—" || cellStr === "-") return;
+          const numMatch = cellStr.match(/\d+(?:[.,]\d+)?/);
+          if (numMatch) {
+            const val = parseFloat(numMatch[0].replace(",", "."));
+            if (!isNaN(val) && val > 0.2 && val < 60.0) {
+              if (!sums[code]) sums[code] = [];
+              sums[code].push(val);
+            }
+          }
+        });
+      }
+      break; // tylko pierwsza (najnowsza) tabela
+    }
+
+    if (used < minPolls) return {};
+    const out = {};
+    for (const [code, vals] of Object.entries(sums)) {
+      if (vals.length >= 3) {
+        out[code] = parseFloat((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2));
+      }
+    }
+    return out;
+  }
+
+  function extractPartyPercentages(rawContent, patternsMap, sourceKey) {
+    if (!rawContent) return {};
+    if (sourceKey === "apAvg") return parseAtlasFromHtmlOrText(rawContent);
+    if (sourceKey === "ppAvg") return parsePolitProFromHtmlOrText(rawContent);
+    if (sourceKey === "ewAvg") return parseEwyboryFromHtmlOrText(rawContent, 30, 5);
+    return {};
+  }
+
+  async function fetchPollsJsonIfAvailable() {
+    const candidates = [POLLS_JSON_URL, "./data/data.json"];
+    for (const url of candidates) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 3500);
+      try {
+        const resp = await fetch(url, { cache: "no-store", signal: controller.signal });
+        clearTimeout(timer);
+        if (!resp.ok) continue;
+        const json = await resp.json();
+        if (json && json.sources && typeof json.sources === "object") {
+          return { json, url };
+        }
+      } catch (e) {
+        clearTimeout(timer);
+      }
+    }
+    return null;
   }
 
   async function fetchTextSmart(targetUrl) {
     const cleanNoProto = targetUrl.replace(/^https?:\/\//, "");
     const endpoints = [
       { url: targetUrl, jsonWrap: false },
-      { url: `https://r.jina.ai/https://${cleanNoProto}`, jsonWrap: false },
+      { url: `https://r.jina.ai/http://${cleanNoProto}`, jsonWrap: false },
       { url: `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`, jsonWrap: true },
       { url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`, jsonWrap: false }
     ];
 
     const attempts = endpoints.map(async ep => {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 5000);
+      const timer = setTimeout(() => controller.abort(), 6500);
       try {
         const resp = await fetch(ep.url, { cache: "no-store", signal: controller.signal });
         clearTimeout(timer);
@@ -1785,45 +1914,70 @@
     renderDiffTable();
   }
 
+  function applySourcesObjectToProposed(sourcesObj, proposed) {
+    const applied = [];
+    if (!sourcesObj || typeof sourcesObj !== "object") return applied;
+    for (const src of AGGREGATOR_SOURCES) {
+      const partyMap = sourcesObj[src.key];
+      if (!partyMap || typeof partyMap !== "object") continue;
+      let hitCount = 0;
+      dataset.forEach((p, idx) => {
+        const rawV = partyMap[p.name];
+        if (typeof rawV === "number" && !isNaN(rawV) && rawV > 0.2 && rawV < 60.0) {
+          proposed[idx][src.key] = parseFloat(rawV.toFixed(2));
+          hitCount++;
+        }
+      });
+      if (hitCount >= 5) {
+        applied.push(`${src.name} (${hitCount} partii)`);
+      }
+    }
+    return applied;
+  }
+
   async function syncAggregatorsFromWeb() {
     const btn = document.getElementById("syncWebBtn");
     const banner = document.getElementById("syncBanner");
     btn.disabled = true;
     btn.textContent = "⏳ Pobieranie...";
     banner.classList.add("visible");
-    banner.innerHTML = "Sprawdzanie: <strong>ewybory.eu (mediana z 30 dni)</strong>, <strong>Atlas Polityczny</strong> oraz <strong>PolitPro (Trend wyborczy)</strong>...";
-
-    const partyPatterns = {
-      KO:     [/Koalicja Obywatelska[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i, / KO [^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i],
-      PIS:    [/Prawo i Sprawiedliwość[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i, / PiS [^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i],
-      KONF:   [/Konfederacja(?!\s+Korony)[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i, / Kon [^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i],
-      KPP:    [/Konfederacja Korony Polskiej[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i, / KKP [^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i],
-      LEWICA: [/Nowa Lewica[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i, / Lewica [^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i],
-      "R+":   [/Rozwój Plus[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i, / R\+ [^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i],
-      PSL:    [/Polskie Stronnictwo Ludowe[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i, / PSL [^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i],
-      RAZEM:  [/Partia Razem[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i, / Razem [^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i],
-      PL2050: [/Polska 2050[^0-9]{0,40}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i, / PL2050 [^0-9]{0,25}(\d{1,2}[.,]\d{1,2})(?:\s*%)?/i]
-    };
+    banner.innerHTML = "Sprawdzanie <strong>data.json</strong> oraz źródeł: <strong>ewybory.eu (30 dni)</strong>, <strong>Atlas Polityczny</strong> i <strong>PolitPro</strong>...";
 
     const proposed = dataset.map(p => ({ ewAvg: p.ewAvg, apAvg: p.apAvg, ppAvg: p.ppAvg }));
     let updatedSources = [];
     let failedSources = [];
+    let jsonMetaNote = "";
 
+    // 1. Najpierw próbujemy pobrać gotowy data.json (np. aktualizowany przez workflow / skrypt fetch_polls.py)
+    const polledJson = await fetchPollsJsonIfAvailable();
+    if (polledJson && polledJson.json && polledJson.json.sources) {
+      const fromJson = applySourcesObjectToProposed(polledJson.json.sources, proposed);
+      if (fromJson.length > 0) {
+        updatedSources.push(...fromJson.map(x => `data.json → ${x}`));
+        const updStr = polledJson.json.updated || polledJson.json.checked || "";
+        if (updStr) jsonMetaNote = ` (plik <code>data.json</code> z ${updStr})`;
+      }
+    }
+
+    // 2. Uzupełniamy brakujące źródła bezpośrednim odczytem i parserami z fetch_polls.py
     for (const src of AGGREGATOR_SOURCES) {
+      const alreadyFromJson = updatedSources.some(item => item.includes(src.name));
+      if (alreadyFromJson) continue;
+
       const content = await fetchTextSmart(src.url);
       if (!content) {
         failedSources.push(src.name);
         continue;
       }
-      const parsed = extractPartyPercentages(content, partyPatterns, src.key);
+      const parsed = extractPartyPercentages(content, null, src.key);
       const count = Object.keys(parsed).length;
-      if (count >= 3) {
+      if (count >= 5) {
         dataset.forEach((p, idx) => {
           if (typeof parsed[p.name] === "number") proposed[idx][src.key] = parsed[p.name];
         });
         updatedSources.push(`${src.name} (${count} partii)`);
       } else {
-        failedSources.push(src.name);
+        failedSources.push(`${src.name} (${count} partii)`);
       }
     }
 
@@ -1831,9 +1985,9 @@
     btn.textContent = "🔄 Sondaże";
 
     const headerMsg = updatedSources.length > 0
-      ? `📡 Odczytano automatycznie: <strong>${updatedSources.join(", ")}</strong>.` +
-        (failedSources.length > 0 ? ` Bez odczytu z: ${failedSources.join(", ")} (możesz podejrzeć linkiem i wpisać poniżej).` : "")
-      : `ℹ️ Automatyczny odczyt został zablokowany po stronie przeglądarek/źródeł lub brak połączenia. Otwórz linki poniżej i wpisz wartości:`;
+      ? `📡 Odczytano${jsonMetaNote}: <strong>${updatedSources.join(", ")}</strong>.` +
+        (failedSources.length > 0 ? ` Bez pełnego odczytu z: ${failedSources.join(", ")}.` : "")
+      : `ℹ️ Brak bezpośredniego odczytu z przeglądarek (CORS/blokady) oraz brak <code>data.json</code>. Użyj linków poniżej, wklej JSON z <code>fetch_polls.py</code> lub wpisz wartości ręcznie:`;
 
     openReviewChangesPanel(banner, proposed, headerMsg);
   }
