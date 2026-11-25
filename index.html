@@ -466,8 +466,8 @@
   </section>
 
 <script>
-  const BUNDLED_DATA_VERSION = "2026-11-v15";
-  const STORAGE_KEY = "sejm_2027_state_v15";
+  const BUNDLED_DATA_VERSION = "2026-11-v16";
+  const STORAGE_KEY = "sejm_2027_state_v16";
   const OTHER_PARTIES_SHARE = 1.6;
 
   // Konfiguracja PWA
@@ -701,15 +701,15 @@
   })();
 
   const DEFAULT_DATASET = [
-    { name: "KO",     bloc: "Demokratyczny", rawSeries: [31.30, 31.30, 31.20, 31.20, 31.20, 31.20, 31.20, 31.20, 31.20, 31.30, 31.30, 31.40, 31.50], ewAvg: 31.60, apAvg: 32.40, ppAvg: 32.60, visible: true },
-    { name: "PIS",    bloc: "Prawica",       rawSeries: [27.40, 27.00, 26.50, 26.00, 25.40, 24.70, 24.00, 23.20, 22.30, 21.40, 20.30, 19.20, 18.00], ewAvg: 20.20, apAvg: 21.90, ppAvg: 22.20, visible: true },
-    { name: "KONF",   bloc: "Prawica",       rawSeries: [13.70, 13.70, 13.60, 13.50, 13.40, 13.30, 13.20, 13.10, 13.00, 12.90, 12.80, 12.70, 12.50], ewAvg: 13.30, apAvg: 14.10, ppAvg: 13.70, visible: true },
-    { name: "KPP",    bloc: "Prawica",       rawSeries: [7.00,  7.40,  7.70,  8.00,  8.20,  8.50,  8.60,  8.70,  8.80,  8.90,  8.90,  8.80,  8.70],  ewAvg: 8.50,  apAvg: 9.10,  ppAvg: 8.50,  visible: true },
-    { name: "LEWICA", bloc: "Demokratyczny", rawSeries: [6.20,  6.10,  6.10,  6.10,  6.10,  6.20,  6.20,  6.30,  6.40,  6.60,  6.80,  7.00,  7.30],  ewAvg: 6.40,  apAvg: 7.30,  ppAvg: 7.30,  visible: true },
-    { name: "R+",     bloc: "Prawica",       rawSeries: [null,  null,  null,  null,  null,  null,  null,  null,  5.40,  5.20,  5.10,  4.90,  4.80],  ewAvg: 4.60,  apAvg: 4.70,  ppAvg: 4.70,  visible: true },
-    { name: "PSL",    bloc: "Demokratyczny", rawSeries: [2.80,  2.80,  2.80,  2.80,  2.80,  2.80,  2.90,  2.90,  2.90,  3.00,  3.10,  3.20,  3.30],  ewAvg: 3.10,  apAvg: 3.00,  ppAvg: 3.50,  visible: false },
-    { name: "RAZEM",  bloc: "Demokratyczny", rawSeries: [3.90,  4.00,  4.10,  4.10,  4.10,  4.10,  4.00,  4.00,  3.90,  3.70,  3.60,  3.40,  3.20],  ewAvg: 3.80,  apAvg: 4.40,  ppAvg: 4.20,  visible: false },
-    { name: "PL2050", bloc: "Demokratyczny", rawSeries: [2.40,  2.20,  2.00,  1.80,  1.70,  1.60,  1.50,  1.40,  1.40,  1.30,  1.30,  1.30,  1.40],  ewAvg: 1.50,  apAvg: 1.70,  ppAvg: 1.70,  visible: false }
+    { name: "KO",     bloc: "Demokratyczny", rawSeries: [31.30, 31.30, 31.20, 31.20, 31.20, 31.20, 31.20, 31.20, 31.20, 31.30, 31.30, 31.40, 31.50], aggHistory: [], ewAvg: 31.60, apAvg: 32.40, ppAvg: 32.60, visible: true },
+    { name: "PIS",    bloc: "Prawica",       rawSeries: [27.40, 27.00, 26.50, 26.00, 25.40, 24.70, 24.00, 23.20, 22.30, 21.40, 20.30, 19.20, 18.00], aggHistory: [], ewAvg: 20.20, apAvg: 21.90, ppAvg: 22.20, visible: true },
+    { name: "KONF",   bloc: "Prawica",       rawSeries: [13.70, 13.70, 13.60, 13.50, 13.40, 13.30, 13.20, 13.10, 13.00, 12.90, 12.80, 12.70, 12.50], aggHistory: [], ewAvg: 13.30, apAvg: 14.10, ppAvg: 13.70, visible: true },
+    { name: "KPP",    bloc: "Prawica",       rawSeries: [7.00,  7.40,  7.70,  8.00,  8.20,  8.50,  8.60,  8.70,  8.80,  8.90,  8.90,  8.80,  8.70],  aggHistory: [], ewAvg: 8.50,  apAvg: 9.10,  ppAvg: 8.50,  visible: true },
+    { name: "LEWICA", bloc: "Demokratyczny", rawSeries: [6.20,  6.10,  6.10,  6.10,  6.10,  6.20,  6.20,  6.30,  6.40,  6.60,  6.80,  7.00,  7.30],  aggHistory: [], ewAvg: 6.40,  apAvg: 7.30,  ppAvg: 7.30,  visible: true },
+    { name: "R+",     bloc: "Prawica",       rawSeries: [null,  null,  null,  null,  null,  null,  5.90,  5.70,  5.60,  5.40,  5.10,  4.90,  4.80],  aggHistory: [], ewAvg: 4.60,  apAvg: 4.70,  ppAvg: 4.70,  visible: true },
+    { name: "PSL",    bloc: "Demokratyczny", rawSeries: [2.80,  2.80,  2.80,  2.80,  2.80,  2.80,  2.90,  2.90,  2.90,  3.00,  3.10,  3.20,  3.30],  aggHistory: [], ewAvg: 3.10,  apAvg: 3.00,  ppAvg: 3.50,  visible: false },
+    { name: "RAZEM",  bloc: "Demokratyczny", rawSeries: [3.90,  4.00,  4.10,  4.10,  4.10,  4.10,  4.00,  4.00,  3.90,  3.70,  3.60,  3.40,  3.20],  aggHistory: [], ewAvg: 3.80,  apAvg: 4.40,  ppAvg: 4.20,  visible: false },
+    { name: "PL2050", bloc: "Demokratyczny", rawSeries: [2.40,  2.20,  2.00,  1.80,  1.70,  1.60,  1.50,  1.40,  1.40,  1.30,  1.30,  1.30,  1.40],  aggHistory: [], ewAvg: 1.50,  apAvg: 1.70,  ppAvg: 1.70,  visible: false }
   ];
 
   function cloneDefaultDataset() {
@@ -878,9 +878,10 @@
       const h = Math.max(0, 24 - partyLastIdx);
       const partyPhi = getSmoothPhi(h);
 
-      const slopeWeights = [0.45, 0.25, 0.18, 0.12];
+      // Trend z ostatnich 6 zmian miesięcznych regresji (wagi 30 / 22 / 17 / 13 / 10 / 8%)
+      const slopeWeights = [0.30, 0.22, 0.17, 0.13, 0.10, 0.08];
       const stepDiffs = [];
-      for (let m = validPoints.length - 1; m >= 1 && stepDiffs.length < 4; m--) {
+      for (let m = validPoints.length - 1; m >= 1 && stepDiffs.length < 6; m--) {
         const cur = validPoints[m];
         const prevPt = validPoints[m - 1];
         if (cur.idx - prevPt.idx === 1) {
@@ -897,13 +898,61 @@
       const srcVals = [p.ewAvg, p.apAvg, p.ppAvg].filter(v => typeof v === "number" && !isNaN(v));
       const aggAvg = srcVals.length > 0 ? (srcVals.reduce((a, b) => a + b, 0) / srcVals.length) : null;
       const hasAvg = (typeof aggAvg === "number" && !isNaN(aggAvg));
-      const diffVal = hasAvg ? (aggAvg - last) : 0;
-      const diffAbs = Math.abs(diffVal);
 
-      const wAnchor = hasAvg ? Math.min(0.35, 0.15 + 0.03 * diffAbs) : 0;
-      const startBase = hasAvg ? (last + 0.35 * wAnchor * diffVal) : last;
+      // Zapisz bieżącą średnią agregatorów w historii dla partyLastIdx (jeśli istnieje)
+      if (!Array.isArray(p.aggHistory)) p.aggHistory = [];
+      if (hasAvg) {
+        p.aggHistory[partyLastIdx] = parseFloat(aggAvg.toFixed(3));
+      }
+
+      // Odchylenia średnich od regresji z ostatnich 4 miesięcy (maks. 3 wcześniejsze zapisane średnie miesięczne + bieżąca średnia agregatorów)
+      const recentDeviations = [];
+      for (let mIdx = Math.max(0, partyLastIdx - 3); mIdx <= partyLastIdx; mIdx++) {
+        const regV = p.rawSeries[mIdx];
+        const avgV = (mIdx === partyLastIdx && hasAvg) ? aggAvg : p.aggHistory[mIdx];
+        if (typeof regV === "number" && !isNaN(regV) && typeof avgV === "number" && !isNaN(avgV)) {
+          recentDeviations.push(avgV - regV);
+        }
+      }
+
+      const meanDeviation = recentDeviations.length > 0
+        ? recentDeviations.reduce((a, b) => a + b, 0) / recentDeviations.length
+        : 0;
+
+      // Spójność znaków odchyleń z analizowanych miesięcy (ignorujemy mikro-szum |d| < 0.05 pkt proc.)
+      const significantSigns = recentDeviations
+        .filter(d => Math.abs(d) >= 0.05)
+        .map(d => (d > 0 ? 1 : -1));
+      const hasMixedSigns = significantSigns.includes(1) && significantSigns.includes(-1);
+
+      // Waga czasowa zależna od odległości do wyborów:
+      // 0,10 przy h >= 12 miesięcy, rośnie liniowo do 0,70 w dniu wyborów (h = 0)
+      const hClamped = Math.max(0, Math.min(12, h));
+      const timeWeight = 0.10 + ((12 - hClamped) / 12) * 0.60; // od 0.10 (h=12) do 0.70 (h=0)
+      const minAnchorWeight = 0.10;
+
+      // Jeśli odchylenia mają różne znaki (brak spójności), waga spada do minimum (0,10);
+      // przy zgodnych znakach skalujemy przez współczynnik spójności (udział dominującego znaku)
+      let consistencyFactor = 1.0;
+      if (hasMixedSigns) {
+        consistencyFactor = 0.0;
+      } else if (recentDeviations.length > 1) {
+        const posCount = significantSigns.filter(s => s > 0).length;
+        const negCount = significantSigns.filter(s => s < 0).length;
+        const dominantCount = Math.max(posCount, negCount);
+        consistencyFactor = dominantCount / recentDeviations.length;
+      }
+
+      const wAnchor = hasAvg
+        ? (hasMixedSigns
+            ? minAnchorWeight
+            : Math.max(minAnchorWeight, minAnchorWeight + (timeWeight - minAnchorWeight) * consistencyFactor))
+        : 0;
+
+      // Poziom startowy przesuwa średnie odchylenie z tych miesięcy (nie jeden punkt)
+      const startBase = hasAvg ? (last + wAnchor * meanDeviation) : last;
       const multH = Math.max(0.01, partyPhi * (1 - Math.pow(partyPhi, Math.max(1, h))) / (1 - partyPhi));
-      const adjTrend = weightedTrend + (hasAvg ? (0.40 * wAnchor * (diffVal / multH)) : 0);
+      const adjTrend = weightedTrend + (hasAvg ? (0.35 * wAnchor * (meanDeviation / multH)) : 0);
 
       return {
         idx,
@@ -1798,6 +1847,7 @@
 
     let selectedMonthIdx = lastMonthIdx;
     const workingSeries = dataset.map(p => [...p.rawSeries]);
+    const workingAggHist = dataset.map(p => Array.isArray(p.aggHistory) ? [...p.aggHistory] : []);
 
     function renderRegEditor() {
       const canAddMonth = selectedMonthIdx < 24 && lastMonthIdx < 24;
@@ -1811,19 +1861,22 @@
       const rowsHtml = dataset.map((p, pIdx) => {
         const origVal = p.rawSeries[selectedMonthIdx];
         const curVal = workingSeries[pIdx][selectedMonthIdx];
+        const curAggHist = workingAggHist[pIdx][selectedMonthIdx];
         const prevMonthVal = selectedMonthIdx > 0 ? workingSeries[pIdx][selectedMonthIdx - 1] : null;
-        const isChanged = origVal !== curVal;
+        const isChanged = origVal !== curVal || (p.aggHistory && p.aggHistory[selectedMonthIdx] !== curAggHist);
 
         const borderStyle = isChanged
           ? "2px solid #fbbf24; background: rgba(251, 191, 36, 0.16); color: #fef08a; font-weight: 800;"
           : "1px solid rgba(148, 163, 184, 0.25); background: #1e293b; color: #f8fafc; font-weight: 600;";
 
         return `
-          <div style="display:grid; grid-template-columns: 74px 74px 1fr; gap:8px; align-items:center; margin-top:6px; padding:3px 4px; border-radius:6px; ${isChanged ? 'background:rgba(251,191,36,0.08);' : ''}">
+          <div style="display:grid; grid-template-columns: 64px 58px 1fr 1fr; gap:6px; align-items:center; margin-top:6px; padding:3px 4px; border-radius:6px; ${isChanged ? 'background:rgba(251,191,36,0.08);' : ''}">
             <strong style="font-size:0.75rem; color:${isChanged ? '#fbbf24' : '#f8fafc'};">${p.name}</strong>
-            <span style="font-size:0.70rem; color:#94a3b8;">${prevMonthVal !== null && prevMonthVal !== undefined ? prevMonthVal.toFixed(1) + '%' : '—'}</span>
-            <input type="number" step="0.1" data-pidx="${pIdx}" value="${curVal !== null && curVal !== undefined ? curVal : ''}" placeholder="brak"
-              style="width:100%; border:${borderStyle}; border-radius:6px; padding:5px 7px; font-size:0.78rem;" />
+            <span style="font-size:0.69rem; color:#94a3b8;">${prevMonthVal !== null && prevMonthVal !== undefined ? prevMonthVal.toFixed(1) + '%' : '—'}</span>
+            <input type="number" step="0.1" data-pidx="${pIdx}" data-field="reg" value="${curVal !== null && curVal !== undefined ? curVal : ''}" placeholder="reg."
+              style="width:100%; border:${borderStyle}; border-radius:6px; padding:5px 6px; font-size:0.76rem;" />
+            <input type="number" step="0.1" data-pidx="${pIdx}" data-field="agg" value="${curAggHist !== null && curAggHist !== undefined ? curAggHist : ''}" placeholder="śr. sond."
+              style="width:100%; border:1px solid rgba(56, 189, 248, 0.28); background:#0f172a; color:#bae6fd; border-radius:6px; padding:5px 6px; font-size:0.76rem;" />
           </div>
         `;
       }).join("");
@@ -1839,10 +1892,11 @@
             ${optionsHtml}
           </select>
         </div>
-        <div style="display:grid; grid-template-columns: 74px 74px 1fr; gap:8px; font-size:0.67rem; color:#94a3b8; font-weight:700; padding-bottom:4px; border-bottom:1px solid rgba(148,163,184,0.2);">
+        <div style="display:grid; grid-template-columns: 64px 58px 1fr 1fr; gap:6px; font-size:0.66rem; color:#94a3b8; font-weight:700; padding-bottom:4px; border-bottom:1px solid rgba(148,163,184,0.2);">
           <span>Partia</span>
-          <span>Poprz. m-c</span>
-          <span>Wartość (${MONTHS_25[selectedMonthIdx]}) %</span>
+          <span>Poprz.</span>
+          <span>Regresja %</span>
+          <span>Śr. sondaży %</span>
         </div>
         ${rowsHtml}
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:10px;">
@@ -1877,8 +1931,13 @@
       banner.querySelectorAll("input[data-pidx]").forEach(inp => {
         inp.addEventListener("change", () => {
           const pIdx = parseInt(inp.dataset.pidx, 10);
+          const field = inp.dataset.field;
           const v = parseFloat(inp.value);
-          workingSeries[pIdx][selectedMonthIdx] = (!isNaN(v) && v >= 0) ? parseFloat(v.toFixed(2)) : null;
+          if (field === "agg") {
+            workingAggHist[pIdx][selectedMonthIdx] = (!isNaN(v) && v >= 0) ? parseFloat(v.toFixed(2)) : null;
+          } else {
+            workingSeries[pIdx][selectedMonthIdx] = (!isNaN(v) && v >= 0) ? parseFloat(v.toFixed(2)) : null;
+          }
           renderRegEditor();
         });
       });
@@ -1886,6 +1945,7 @@
       document.getElementById("saveRegBtn").onclick = () => {
         dataset.forEach((p, pIdx) => {
           p.rawSeries = [...workingSeries[pIdx]];
+          p.aggHistory = [...workingAggHist[pIdx]];
         });
         autoNear5Applied = false;
         renderAll();
